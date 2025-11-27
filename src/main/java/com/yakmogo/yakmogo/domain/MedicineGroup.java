@@ -49,7 +49,8 @@ public class MedicineGroup {
 		ScheduleType scheduleType,
 		String scheduleValue,
 		LocalDate startDate,
-		LocalTime intakeTime)
+		LocalTime intakeTime
+	)
 	{
 		this.user = user;
 		this.name = name;
