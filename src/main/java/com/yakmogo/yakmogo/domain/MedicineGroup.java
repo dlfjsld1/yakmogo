@@ -60,4 +60,24 @@ public class MedicineGroup {
 		this.intakeTime = intakeTime;
 		this.isActive = true;
 	}
+
+	// 약 복용 비활성화
+	public void deactivate() {
+		this.isActive = false;
+	}
+
+	// 약 복용 정보 수정
+	public void updateInfo(
+		String name,
+		ScheduleType scheduleType,
+		String scheduleValue,
+		LocalDate startDate,
+		LocalTime intakeTime
+	) {
+		this.name = name;
+		this.scheduleType = scheduleType;
+		this.scheduleValue = scheduleValue;
+		this.startDate = startDate;
+		this.intakeTime = intakeTime;
+	}
 }

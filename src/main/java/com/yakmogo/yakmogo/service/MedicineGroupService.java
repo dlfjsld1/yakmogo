@@ -83,4 +83,36 @@ public class MedicineGroupService {
 		}
 		return false;
 	}
+
+	// 약 삭제
+	public void delete(Long groupId) {
+		MedicineGroup group = medicineGroupRepository.findById(groupId)
+			.orElseThrow(() -> new IllegalArgumentException("해당 약이 없습니다."));
+
+		if (!group.isActive()) {
+			throw new IllegalArgumentException("이미 복용 중단된 약입니다.");
+		}
+
+		// Soft Delete
+		group.deactivate();
+
+		System.out.println(group.getName() + "을(를) 복용 중단 처리했습니다.");
+	}
+
+	// 약 정보 수정
+	public void update(Long groupId, MedicineRequest request) {
+		MedicineGroup group = medicineGroupRepository.findById(groupId)
+			.orElseThrow(() -> new IllegalArgumentException("해당 약이 없습니다."));
+
+		// 정보 업데이트
+		group.updateInfo(
+			request.name(),
+			request.scheduleType(),
+			request.scheduleValue(),
+			request.startDate(),
+			request.intakeTime()
+		);
+
+		System.out.println(group.getName() + "의 복용 정보 수정 완료");
+	}
 }
