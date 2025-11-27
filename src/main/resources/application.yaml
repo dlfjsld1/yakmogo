@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: yakmogo # 프로젝트 이름
+
+  # 1. 데이터베이스 설정 (일단 개발용 H2로 세팅)
+  h2:
+    console:
+      enabled: true  # 웹 브라우저에서 DB 확인 가능하게 함
+      path: /h2-console
+
+  datasource:
+    url: jdbc:h2:mem:yakmogodb  # 메모리에 DB 생성
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+
+  # 2. JPA 설정 (테이블 자동 생성)
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update  # Entity 코드 보고 테이블 자동 생성/수정
+    properties:
+      hibernate:
+        format_sql: true # 로그 예쁘게 보기
+    show-sql: true       # 실행되는 SQL 로그 찍기
+
+# 3. 텔레그램 설정 (우리가 만든 커스텀 설정)
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN}
+    chat-id: ${TELEGRAM_CHAT_ID}
