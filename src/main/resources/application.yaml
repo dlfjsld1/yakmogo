@@ -22,9 +22,9 @@ spring:
     properties:
       hibernate:
         format_sql: true # 로그 예쁘게 보기
-    show-sql: true       # 실행되는 SQL 로그 찍기
+    show-sql: true       # 실행되는 SQL 로그
 
-# 3. 텔레그램 설정 (우리가 만든 커스텀 설정)
+# 3. 텔레그램 설정
 telegram:
   bot:
     token: ${TELEGRAM_BOT_TOKEN}
