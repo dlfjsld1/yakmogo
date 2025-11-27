@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev # 개발모드 명시(임시데이터 입력 때문에 추가)
   application:
     name: yakmogo # 프로젝트 이름
 
