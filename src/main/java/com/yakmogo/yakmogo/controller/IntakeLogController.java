@@ -19,13 +19,9 @@ public class IntakeLogController {
 	//복용 완료 api
 	@PostMapping("/{logId}/complete")
 	public ResponseEntity<String> completeIntake(@PathVariable Long logId) {
-		boolean result = intakeLogService.markAsTaken(logId);
+		intakeLogService.markAsTaken(logId);
 
-		if (result) {
-			return ResponseEntity.ok("약 복용 처리 완료");
-		} else {
-			return ResponseEntity.badRequest().body("이미 처리됐거나 잘못된 요청");
-		}
+		return ResponseEntity.ok("약 복용 처리 완료");
 	}
 
 }
