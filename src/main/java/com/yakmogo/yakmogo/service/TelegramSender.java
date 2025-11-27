@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -28,7 +29,7 @@ public class TelegramSender {
 	private void send(String chatId, String text) {
 		try {
 			String urlString = "https://api.telegram.org/bot" + botToken + "/sendMessage";
-			URL url = new URL(urlString);
+			URL url = URI.create(urlString).toURL();
 
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("POST");
