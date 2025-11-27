@@ -1,7 +1,12 @@
 package com.yakmogo.yakmogo.dto;
 
+import java.util.List;
+
 public record UserCreateRequest(
+	// 유저 이름
 	String name,
-	// 보호자 텔레그램 ID (콤마로 구분, 예: "1234,5678")
-	String guardianChatIds
-) {}
+	// 알림 수신자 이름과 텔레그램 ID
+	List<GuardianDto> guardians
+) {
+	public record GuardianDto(String name, String chatId) {}
+}

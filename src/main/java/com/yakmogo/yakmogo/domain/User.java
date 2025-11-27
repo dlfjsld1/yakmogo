@@ -1,5 +1,8 @@
 package com.yakmogo.yakmogo.domain;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,11 +16,15 @@ public class User {
 
 	private String name;
 
-	private String guardianChatIds;
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+	private List<Guardian> guardians = new ArrayList<>();
 
 	@Builder
-	public User(String name, String guardianChatIds) {
+	public User(String name) {
 		this.name = name;
-		this.guardianChatIds = guardianChatIds;
+	}
+
+	public void addGuardian(Guardian guardian) {
+		this.guardians.add(guardian);
 	}
 }

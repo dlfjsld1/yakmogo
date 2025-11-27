@@ -14,19 +14,7 @@ public class TelegramSender {
 	@Value("${telegram.bot.token}")
 	private String botToken;
 
-	//보호자에게 메시지 발송
-	public void sendToGuardians(String guardianChatIds, String message) {
-		if (guardianChatIds == null || guardianChatIds.isEmpty()) return;
-
-		//콤마로 id를 구분해 발송
-		String[] chatIds = guardianChatIds.split(",");
-
-		for(String chatId : chatIds) {
-			send(chatId.trim(), message);
-		}
-	}
-
-	private void send(String chatId, String text) {
+	public void send(String chatId, String text) {
 		try {
 			String urlString = "https://api.telegram.org/bot" + botToken + "/sendMessage";
 			URL url = URI.create(urlString).toURL();

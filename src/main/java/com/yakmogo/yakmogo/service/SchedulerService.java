@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.yakmogo.yakmogo.domain.Guardian;
 import com.yakmogo.yakmogo.domain.IntakeLog;
 import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.domain.MedicineGroup;
@@ -53,7 +54,7 @@ public class SchedulerService {
 	// 테스트용 감시자: 10초마다 확인
 	// @Scheduled(cron = "0/10 * * * * *")
 	// 감시자: 매시 7분, 37분마다 미복용 체크
-	@Scheduled(cron = "0 7/37 * * * *")
+	@Scheduled(cron = "0 7/30 * * * *")
 	public void checkMissedDose() {
 		LocalDateTime now = LocalDateTime.now();
 		List<IntakeLog> pendingLogs = intakeLogRepository.findPendingLogs(now.toLocalDate(), now.toLocalTime());
@@ -64,9 +65,16 @@ public class SchedulerService {
 			String medicineName = log.getMedicineGroup().getName();
 
 			if (minutesOverdue >= 60) {
-				// 1시간 지났을 때 보호자에게 텔레그램 발송
-				String msg = String.format("[알림] %s님이 '%s' 복용 시간을 1시간 넘겼습니다! 확인이 필요합니다.", userName, medicineName);
-				telegramSender.sendToGuardians(log.getUser().getGuardianChatIds(), msg);
+				// 1시간 지났을 때 알림 수신자에게 텔레그램 발송
+				for (Guardian guardian : log.getUser().getGuardians()) {
+					String msg = String.format(
+						"[알림] %s님! %s님이 '%s' 복용 시간을 1시간 넘겼습니다! 확인이 필요합니다.",
+						guardian.getName(),
+						userName,
+						medicineName
+					);
+					telegramSender.send(guardian.getChatId(), msg);
+				}
 			} else {
 				// 1시간 미만일 때 로그만 찍음(추후 앱 푸시로 변경)
 				System.out.println("[알림] " + userName + "님, " + medicineName + " 드실 시간입니다.");

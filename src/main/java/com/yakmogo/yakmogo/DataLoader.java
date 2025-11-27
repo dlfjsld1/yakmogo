@@ -30,14 +30,26 @@ public class DataLoader implements CommandLineRunner {
 		if (userRepository.count() == 0) {
 			System.out.println("============== [테스트 데이터 생성 중] ==============");
 
-			// 1. 할아버지 생성 (내 텔레그램 ID 넣기)
+			// 1. 유저 생성
 			User grandpa = User.builder()
 				.name("김철수")
-				.guardianChatIds(myChatIdForTest)
 				.build();
 			userRepository.save(grandpa);
 
-			// 2. 약 스케줄 생성 (매일 아침 9시)
+			// 2. 알림 수신자 생성
+			Guardian myGuardian = Guardian.builder()
+				.user(grandpa)
+				.name("알림수신자")
+				.chatId(myChatIdForTest)
+				.build();
+
+			// 3. 관계 연결
+			grandpa.addGuardian(myGuardian);
+
+			// 4. 저장
+			userRepository.save(grandpa);
+
+			// 5. 약 스케줄 생성 (매일 아침 9시)
 			MedicineGroup medicine = MedicineGroup.builder()
 				.user(grandpa)
 				.name("고혈압약")
@@ -47,7 +59,7 @@ public class DataLoader implements CommandLineRunner {
 				.build();
 			medicineGroupRepository.save(medicine);
 
-			// 3. 오늘 치 기록 강제 생성 (아침 9시 거를 안 먹은 상태)
+			// 6. 오늘 치 기록 강제 생성 (아침 9시 거를 안 먹은 상태)
 			// 1시간 경과 후 로직 발동
 			IntakeLog log = IntakeLog.builder()
 				.user(grandpa)
