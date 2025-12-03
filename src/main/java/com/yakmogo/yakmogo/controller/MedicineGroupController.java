@@ -1,7 +1,10 @@
 package com.yakmogo.yakmogo.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -9,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.yakmogo.yakmogo.domain.MedicineGroup;
 import com.yakmogo.yakmogo.dto.MedicineRequest;
 import com.yakmogo.yakmogo.service.MedicineGroupService;
 
@@ -45,5 +49,11 @@ public class MedicineGroupController {
 	public ResponseEntity<String> deleteMedicine(@PathVariable Long groupId) {
 		medicineGroupService.delete(groupId);
 		return ResponseEntity.ok("해당 약을 삭제했습니다.");
+	}
+
+	// 특정 유저의 약 목록 조회 API
+	@GetMapping("/users/{userId}/medicines")
+	public ResponseEntity<List<MedicineGroup>> getMedicines(@PathVariable Long userId) {
+		return ResponseEntity.ok(medicineGroupService.getMedicines(userId));
 	}
 }

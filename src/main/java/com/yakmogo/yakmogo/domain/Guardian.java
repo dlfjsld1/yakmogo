@@ -1,5 +1,7 @@
 package com.yakmogo.yakmogo.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,6 +15,7 @@ public class Guardian {
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id")
+	@JsonIgnore
 	private User user;
 
 	// 알림 수신자 이름

@@ -11,4 +11,7 @@ public interface MedicineGroupRepository extends JpaRepository<MedicineGroup, Lo
 
 	// 같은 유저의 같은 약 중복 확인
 	boolean existsByUserAndName(User user, String name);
+
+	// 특정 유저의 약 목록 조회
+	List<MedicineGroup> findAllByUserIdAndIsActiveTrue(Long userId);
 }

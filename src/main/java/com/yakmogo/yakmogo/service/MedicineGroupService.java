@@ -2,6 +2,7 @@ package com.yakmogo.yakmogo.service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -114,5 +115,10 @@ public class MedicineGroupService {
 		);
 
 		System.out.println(group.getName() + "의 복용 정보 수정 완료");
+	}
+
+	// 특정 유저의 약 목록 가져오기
+	public List<MedicineGroup> getMedicines(Long userId) {
+		return medicineGroupRepository.findAllByUserIdAndIsActiveTrue(userId);
 	}
 }
