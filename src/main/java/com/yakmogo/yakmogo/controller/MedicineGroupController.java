@@ -19,7 +19,7 @@ import com.yakmogo.yakmogo.service.MedicineGroupService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/medicine-groups")
 @RequiredArgsConstructor
 public class MedicineGroupController {
 	private final MedicineGroupService medicineGroupService;
