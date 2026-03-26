@@ -1,33 +1,34 @@
 package com.yakmogo.yakmogo.service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.yakmogo.yakmogo.domain.Guardian;
 import com.yakmogo.yakmogo.domain.IntakeLog;
-import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.domain.MedicineGroup;
 import com.yakmogo.yakmogo.domain.ScheduleType;
+import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.repository.IntakeLogRepository;
 import com.yakmogo.yakmogo.repository.MedicineGroupRepository;
 
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class SchedulerService {
+
 	private final MedicineGroupRepository medicineGroupRepository;
 	private final IntakeLogRepository intakeLogRepository;
-	private final TelegramSender telegramSender;
 
-	//새벽 2시 13분(Thundering Herd 회피)에 오늘 먹을 약 생성
+	private final TelegramService telegramService;
+
+	// 1. 새벽 2시 13분에 오늘 먹을 약 생성 (기존 로직 유지)
 	@Scheduled(cron = "0 13 2 * * *")
 	public void generateDailyLogs() {
 		LocalDate today = LocalDate.now();
@@ -51,38 +52,33 @@ public class SchedulerService {
 		}
 	}
 
-	// 테스트용 감시자: 10초마다 확인
-	// @Scheduled(cron = "0/10 * * * * *")
-	// 감시자: 매시 7분, 37분마다 미복용 체크
-	@Scheduled(cron = "0 7/30 * * * *")
+	@Scheduled(cron = "0 * * * * *")
 	public void checkMissedDose() {
-		LocalDateTime now = LocalDateTime.now();
-		List<IntakeLog> pendingLogs = intakeLogRepository.findPendingLogs(now.toLocalDate(), now.toLocalTime());
+		LocalTime now = LocalTime.now().withSecond(0).withNano(0);
+		LocalDate today = LocalDate.now();
 
-		for (IntakeLog log : pendingLogs) {
-			long minutesOverdue = ChronoUnit.MINUTES.between(log.getIntakeTime(), now.toLocalTime());
-			String userName = log.getUser().getName();
-			String medicineName = log.getMedicineGroup().getName();
+		List<IntakeLog> pendingLogs = intakeLogRepository.findPendingLogs(today, now);
 
-			if (minutesOverdue >= 60) {
-				// 1시간 지났을 때 알림 수신자에게 텔레그램 발송
-				for (Guardian guardian : log.getUser().getGuardians()) {
-					String msg = String.format(
-						"[알림] %s님! %s님이 '%s' 복용 시간을 1시간 넘겼습니다! 확인이 필요합니다.",
-						guardian.getName(),
-						userName,
-						medicineName
-					);
-					telegramSender.send(guardian.getChatId(), msg);
-				}
-			} else {
-				// 1시간 미만일 때 로그만 찍음(추후 앱 푸시로 변경)
-				System.out.println("[알림] " + userName + "님, " + medicineName + " 드실 시간입니다.");
+		for (IntakeLog logInfo : pendingLogs) {
+			LocalTime intakeTime = logInfo.getIntakeTime();
+
+			// 약 먹을 시간과 현재 시간의 차이(분) 계산
+			long minutesOverdue = ChronoUnit.MINUTES.between(intakeTime, now);
+
+			if (minutesOverdue == 0) {
+				sendNormalAlert(logInfo); // 정시
+			} else if (minutesOverdue == 30) {
+				sendNaggingAlertLevel1(logInfo); // 30분
+			} else if (minutesOverdue == 60) {
+				sendNaggingAlertLevel2(logInfo); // 1시간
+			} else if (minutesOverdue > 60 && minutesOverdue <= 360 && minutesOverdue % 60 == 0) {
+				// 2시간 ~ 6시간 경과: 60분 단위로 3단계 알람 발송
+				sendNaggingAlertLevel3(logInfo, (int)(minutesOverdue / 60));
 			}
 		}
 	}
 
-	// 날짜 계산
+	// 날짜 계산 로직
 	private boolean isIntakeDay(MedicineGroup group, LocalDate today) {
 		if (group.getScheduleType() == ScheduleType.DAILY) return true;
 
@@ -97,5 +93,55 @@ public class SchedulerService {
 		}
 
 		return false;
+	}
+
+	// ---알림 발송 메서드들---
+
+	private void sendNormalAlert(IntakeLog logInfo) {
+		String photoUrl = "https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?q=80&w=600&auto=format&fit=crop";
+
+		logInfo.getUser().getGuardians().forEach(guardian -> {
+			String caption = String.format(
+				"🦉 [약모고 정시 알림]\n\n지금은 %s님이 '%s'을(를) 드실 시간입니다! 💊\n복용 후 아래 약 복용 완료 버튼을 눌러주세요.",
+				logInfo.getUser().getName(), logInfo.getMedicineGroup().getName()
+			);
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+		});
+	}
+
+	private void sendNaggingAlertLevel1(IntakeLog logInfo) {
+		String photoUrl = "https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?q=80&w=600&auto=format&fit=crop";
+
+		logInfo.getUser().getGuardians().forEach(guardian -> {
+			String caption = String.format(
+				"🦉 [경고: 30분 경과]\n\n%s님... '%s' 아직 안 드셨습니까?\n제가 지켜보고 있습니다... 빨리 드시고 아래 버튼 눌러주세요.",
+				logInfo.getUser().getName(), logInfo.getMedicineGroup().getName()
+			);
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+		});
+	}
+
+	private void sendNaggingAlertLevel2(IntakeLog logInfo) {
+		String photoUrl = "https://images.unsplash.com/photo-1550159930-40066082a4fc?q=80&w=600&auto=format&fit=crop";
+
+		logInfo.getUser().getGuardians().forEach(guardian -> {
+			String caption = String.format(
+				"🔥 [긴급: 1시간 경과!!!]\n\n아니 %s님!!! '%s' 왜 아직도 안 드시는 겁니까!!!\n당장 입에 털어 넣으세요!!!\n아래 버튼 눌렀!! 💊🔥🔥",
+				logInfo.getUser().getName(), logInfo.getMedicineGroup().getName()
+			);
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+		});
+	}
+
+	private void sendNaggingAlertLevel3(IntakeLog logInfo, int hoursOverdue) {
+		String photoUrl = "https://images.unsplash.com/photo-1550159930-40066082a4fc?q=80&w=600&auto=format&fit=crop";
+
+		logInfo.getUser().getGuardians().forEach(guardian -> {
+			String caption = String.format(
+				"🔥🔥 [최후통첩: %d시간 경과]\n\n%s님!!! '%s' 안 드신 지 %d시간이나 지났습니다!!!\n제발 저를 그만 시험하시고 당장 💊아래 버튼을 눌러주세요!!!",
+				hoursOverdue, logInfo.getUser().getName(), logInfo.getMedicineGroup().getName(), hoursOverdue
+			);
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+		});
 	}
 }

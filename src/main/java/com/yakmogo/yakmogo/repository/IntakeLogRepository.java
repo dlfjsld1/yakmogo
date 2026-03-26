@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.yakmogo.yakmogo.domain.IntakeLog;
+import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.domain.MedicineGroup;
 
 public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
@@ -20,7 +21,7 @@ public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
 		"JOIN FETCH il.user " +
 		"JOIN FETCH il.medicineGroup " +
 		"WHERE il.intakeDate = :today " +
-		"AND il.status = 'pending' " +
+		"AND il.status = 'PENDING' " +
 		"AND il.intakeTime <= :nowTime")
 	List<IntakeLog> findPendingLogs(
 		@Param("today") LocalDate today,
@@ -38,4 +39,6 @@ public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
 		Long userId,
 		LocalDate intakeDate
 	);
+
+	long countByStatus(IntakeStatus status);
 }
