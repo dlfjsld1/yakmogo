@@ -41,4 +41,7 @@ public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
 	);
 
 	long countByStatus(IntakeStatus status);
+
+	// 특정 약(MedicineGroup)이 특정 날짜에 이미 로그가 생성됐는지 확인
+	boolean existsByMedicineGroupIdAndIntakeDate(Long medicineGroupId, LocalDate intakeDate);
 }

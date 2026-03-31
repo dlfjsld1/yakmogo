@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -120,5 +121,37 @@ public class MedicineGroupService {
 	// 특정 유저의 약 목록 가져오기
 	public List<MedicineGroup> getMedicines(Long userId) {
 		return medicineGroupRepository.findAllByUserIdAndIsActiveTrue(userId);
+	}
+
+	@Scheduled(cron = "1 0 3 * * *") // 매일 00:03:01에 실행
+	public void generateDailyIntakeLogs() {
+		LocalDate today = LocalDate.now();
+
+		// 1. 현재 복용 중인 모든 약(isActive=true) 조회
+		List<MedicineGroup> allActiveGroups = medicineGroupRepository.findAllByIsActiveTrue();
+
+		int createdCount = 0;
+		for (MedicineGroup group : allActiveGroups) {
+			// 2. 오늘이 이 약을 복용하는 날인지 확인
+			if (shouldEatToday(group, today)) {
+
+				// 3. 중복 방지: 이미 오늘치 데이터가 있으면 패스
+				boolean exists = intakeLogRepository.existsByMedicineGroupIdAndIntakeDate(group.getId(), today);
+
+				if (!exists) {
+					IntakeLog log = IntakeLog.builder()
+						.user(group.getUser())
+						.medicineGroup(group)
+						.intakeDate(today)
+						.intakeTime(group.getIntakeTime())
+						.status(IntakeStatus.PENDING)
+						.build();
+
+					intakeLogRepository.save(log);
+					createdCount++;
+				}
+			}
+		}
+		System.out.println("[새벽 배치 완료] " + today + " 복용 로그 " + createdCount + "건 생성 완료! 💊");
 	}
 }
