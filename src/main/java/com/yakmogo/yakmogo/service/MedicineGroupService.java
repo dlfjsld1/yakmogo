@@ -33,7 +33,7 @@ public class MedicineGroupService {
 			.orElseThrow(() -> new IllegalArgumentException("없는 유저입니다."));
 
 		// 같은 유저 같은 약 중복 체크
-		if (medicineGroupRepository.existsByUserAndName(user, request.name())) {
+		if (medicineGroupRepository.existsByUserIdAndNameAndIsActiveTrue(userId, request.name())) {
 			throw new IllegalArgumentException(request.name() + "는 이미 등록한 약입니다");
 		}
 
@@ -74,7 +74,7 @@ public class MedicineGroupService {
 		if (group.getScheduleType() == ScheduleType.DAILY) return true;
 
 		if (group.getScheduleType() == ScheduleType.WEEKLY) {
-			return group.getScheduleValue().contains(today.getDayOfWeek().name());
+			return group.getScheduleValue().toUpperCase().contains(today.getDayOfWeek().name());
 		}
 
 		if (group.getScheduleType() == ScheduleType.INTERVAL) {
