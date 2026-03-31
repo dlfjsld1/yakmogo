@@ -39,6 +39,15 @@ public class IntakeLog {
 	// 실제 먹은 시간
 	private LocalDateTime actualTakenTime;
 
+	// 알람 발송 횟수 (기본값 0)
+	@Column(nullable = false)
+	private int notifiedCount = 0;
+
+	// 알람 발송 시 횟수 증가 메서드
+	public void incrementNotifiedCount() {
+		this.notifiedCount++;
+	}
+
 	// 약 먹을 때 상태 변경
 	public void markAsTaken() {
 		this.status = IntakeStatus.TAKEN;
@@ -58,5 +67,6 @@ public class IntakeLog {
 		this.intakeDate = intakeDate;
 		this.intakeTime = intakeTime;
 		this.status = status;
+		this.notifiedCount = 0; // 빌더 생성 시 초기화
 	}
 }

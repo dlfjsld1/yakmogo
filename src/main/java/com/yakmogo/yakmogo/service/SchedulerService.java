@@ -53,6 +53,7 @@ public class SchedulerService {
 	}
 
 	@Scheduled(cron = "0 * * * * *")
+	@Transactional // DB 상태 변경(notifiedCount 증가)을 위해 필수!
 	public void checkMissedDose() {
 		LocalTime now = LocalTime.now().withSecond(0).withNano(0);
 		LocalDate today = LocalDate.now();
@@ -60,20 +61,26 @@ public class SchedulerService {
 		List<IntakeLog> pendingLogs = intakeLogRepository.findPendingLogs(today, now);
 
 		for (IntakeLog logInfo : pendingLogs) {
-			LocalTime intakeTime = logInfo.getIntakeTime();
+			long minutesOverdue = ChronoUnit.MINUTES.between(logInfo.getIntakeTime(), now);
+			int currentCount = logInfo.getNotifiedCount();
 
-			// 약 먹을 시간과 현재 시간의 차이(분) 계산
-			long minutesOverdue = ChronoUnit.MINUTES.between(intakeTime, now);
-
-			if (minutesOverdue == 0) {
-				sendNormalAlert(logInfo); // 정시
-			} else if (minutesOverdue == 30) {
-				sendNaggingAlertLevel1(logInfo); // 30분
-			} else if (minutesOverdue == 60) {
-				sendNaggingAlertLevel2(logInfo); // 1시간
-			} else if (minutesOverdue > 60 && minutesOverdue <= 360 && minutesOverdue % 60 == 0) {
-				// 2시간 ~ 6시간 경과: 60분 단위로 3단계 알람 발송
-				sendNaggingAlertLevel3(logInfo, (int)(minutesOverdue / 60));
+			// 1. 첫 알람 - 아직 한 번도 알람을 안 보냈는데 시간이 이미 지났다면 즉시 발송
+			if (currentCount == 0 && minutesOverdue >= 0) {
+				sendNormalAlert(logInfo);
+				logInfo.incrementNotifiedCount(); // 0 -> 1
+			}
+			// 2. 이미 최소 1회 알람이 나갔고, 특정 지연 시점에 도달했을 때만 발송
+			else if (currentCount > 0) {
+				if (minutesOverdue == 30) {
+					sendNaggingAlertLevel1(logInfo);
+					logInfo.incrementNotifiedCount();
+				} else if (minutesOverdue == 60) {
+					sendNaggingAlertLevel2(logInfo);
+					logInfo.incrementNotifiedCount();
+				} else if (minutesOverdue > 60 && minutesOverdue <= 360 && minutesOverdue % 60 == 0) {
+					sendNaggingAlertLevel3(logInfo, (int)(minutesOverdue / 60));
+					logInfo.incrementNotifiedCount();
+				}
 			}
 		}
 	}
