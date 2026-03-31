@@ -31,15 +31,13 @@ public class TelegramPollingService {
 	// 중복 처리 방지
 	private long lastUpdateId = 0;
 
-	// 3000ms마다 텔레그램 서버에 확인 요청
-	@Scheduled(fixedDelay = 3000)
+	// 텔레그램 Long Polling 적용 (최대 30초 대기)
+	// 응답 수신 또는 타임아웃 종료 후 1000ms만 쉬고 즉시 재연결됨
+	@Scheduled(fixedDelay = 1000)
 	@Transactional
 	public void pollTelegramUpdates() {
-		if (intakeLogRepository.countByStatus(IntakeStatus.PENDING) == 0) {
-			return;
-		}
 		try {
-			String url = "https://api.telegram.org/bot" + botToken + "/getUpdates?offset=" + (lastUpdateId + 1);
+			String url = "https://api.telegram.org/bot" + botToken + "/getUpdates?offset=" + (lastUpdateId + 1)+ "&timeout=30";
 			ResponseEntity<JsonNode> response = restTemplate.getForEntity(url, JsonNode.class);
 			JsonNode root = response.getBody();
 
