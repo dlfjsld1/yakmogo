@@ -10,7 +10,7 @@ public interface MedicineGroupRepository extends JpaRepository<MedicineGroup, Lo
 	List<MedicineGroup> findAllByIsActiveTrue();
 
 	// 같은 유저의 같은 약 중복 확인
-	boolean existsByUserAndName(User user, String name);
+	boolean existsByUserIdAndNameAndIsActiveTrue(Long userId, String name);
 
 	// 특정 유저의 약 목록 조회
 	List<MedicineGroup> findAllByUserIdAndIsActiveTrue(Long userId);
