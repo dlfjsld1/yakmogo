@@ -4,27 +4,22 @@ spring:
   application:
     name: yakmogo # 프로젝트 이름
 
-  # 1. 데이터베이스 설정 (일단 개발용 H2로 세팅)
-  h2:
-    console:
-      enabled: true  # 웹 브라우저에서 DB 확인 가능하게 함
-      path: /h2-console
-
+  # 1. 데이터베이스 설정 MariaDB로 교체
   datasource:
-    url: jdbc:h2:mem:yakmogodb  # 메모리에 DB 생성
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mariadb://${RASPI_IP}:3306/yakmogo
+    username: yakmogo_user
+    password: ${YAKMOGO_DB_PASSWORD}
+    driver-class-name: org.mariadb.jdbc.Driver
 
-  # 2. JPA 설정 (테이블 자동 생성)
+  # 2. JPA 설정 (H2 -> MariaDB로 변경)
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
-      ddl-auto: update  # Entity 코드 보고 테이블 자동 생성/수정
+      ddl-auto: update
     properties:
       hibernate:
-        format_sql: true # 로그 예쁘게 보기
-    show-sql: true       # 실행되는 SQL 로그
+        format_sql: true
+    show-sql: true
 
 # 3. 텔레그램 설정
 telegram:
