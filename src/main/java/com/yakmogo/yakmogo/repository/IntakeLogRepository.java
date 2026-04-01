@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -44,4 +45,9 @@ public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
 
 	// 특정 약(MedicineGroup)이 특정 날짜에 이미 로그가 생성됐는지 확인
 	boolean existsByMedicineGroupIdAndIntakeDate(Long medicineGroupId, LocalDate intakeDate);
+
+	@Modifying
+	@Query("UPDATE IntakeLog il SET il.status = 'MISSED' " +
+		"WHERE il.intakeDate < :today AND il.status = 'PENDING'")
+	int updateMissedStatus(@Param("today") LocalDate today);
 }

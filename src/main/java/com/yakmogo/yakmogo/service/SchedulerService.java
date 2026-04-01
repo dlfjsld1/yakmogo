@@ -15,9 +15,10 @@ import com.yakmogo.yakmogo.domain.ScheduleType;
 import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.repository.IntakeLogRepository;
 import com.yakmogo.yakmogo.repository.MedicineGroupRepository;
-
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -150,5 +151,12 @@ public class SchedulerService {
 			);
 			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
 		});
+	}
+
+	@Scheduled(cron = "59 59 23 * * *")
+	@Transactional
+	public void cleanupPendingLogs() {
+		int updatedCount = intakeLogRepository.updateMissedStatus(LocalDate.now());
+		log.info("[자정 정리 완료] 미복용 처리된 로그 개수: {}", updatedCount);
 	}
 }
