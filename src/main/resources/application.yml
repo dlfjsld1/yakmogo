@@ -30,3 +30,8 @@ telegram:
 # 4. 관리자 패스워드 설정
 admin:
   password: ${ADMIN_PASSWORD}
+
+# 5. 프론트엔드 도메인 설정
+app:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}

@@ -23,6 +23,10 @@ public class AdminInterceptor implements HandlerInterceptor {
 			return true;
 		}
 
+		// 텔레그램 인증 경로는 비로그인 상태로도 접근 가능
+		String uri = request.getRequestURI();
+		if (uri.startsWith("/api/v1/auth/")) return true;
+
 		String requestPassword = request.getHeader("x-admin-password");
 		String magicToken = request.getHeader("x-magic-token");
 

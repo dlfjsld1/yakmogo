@@ -65,7 +65,19 @@ public class TelegramPollingService {
 	}
 
 	private void handleCallback(String callbackData, String chatId, String callbackQueryId) {
-		// "TAKEN_로그ID" 형식인지 확인
+		// 1. 내 챗 아이디 확인 요청 처리
+		if (callbackData.equals("GET_MY_ID")) {
+			try {
+				telegramService.sendChatIdInfo(chatId);
+				answerCallbackQuery(callbackQueryId); // 모래시계 끄기
+				log.info("[ID 확인 요청] ChatID: {}", chatId);
+				return;
+			} catch (Exception e) {
+				log.error("ID 확인 처리 중 에러", e);
+			}
+		}
+
+		// 2. 기존 "TAKEN_로그ID" 복용 완료 처리
 		if (callbackData.startsWith("TAKEN_")) {
 			try {
 				Long logId = Long.parseLong(callbackData.split("_")[1]);
@@ -78,16 +90,17 @@ public class TelegramPollingService {
 					logInfo.markAsTaken();
 					intakeLogRepository.save(logInfo);
 
-					// 2. 복용 확인 알림 전송
-					String msg = String.format("✅ %s님의 '%s' 복용이 확인되었습니다!\n실제 복용 시간: %s\n저는 이제 퇴근할게요! 💤",
+					// 복용 확인 알림 전송
+					String msg = String.format("✅ %s님의 오늘 '%s' 복용이 확인되었습니다!\n%s 에 복용하셨어요.\n저는 이제 퇴근할게요! 💤",
 						logInfo.getUser().getName(),
 						logInfo.getMedicineGroup().getName(),
-						logInfo.getActualTakenTime().toLocalTime().toString().substring(0, 5)); // 14:30 형태로 출력
+						logInfo.getActualTakenTime().toLocalTime().toString().substring(0, 5));
+
 					telegramService.sendMessage(chatId, msg);
 					log.info("[약 복용 확인] LogID: {} 처리 완료", logId);
 				}
 
-				// 3. 텔레그램 버튼의 '로딩(모래시계)' 표시 끄기
+				// 텔레그램 버튼의 '로딩(모래시계)' 표시 끄기
 				answerCallbackQuery(callbackQueryId);
 
 			} catch (Exception e) {

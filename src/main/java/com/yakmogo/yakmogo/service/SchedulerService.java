@@ -110,10 +110,11 @@ public class SchedulerService {
 
 		logInfo.getUser().getGuardians().forEach(guardian -> {
 			String caption = String.format(
-				"🦉 [약모고 정시 알림]\n\n지금은 %s님이 '%s'을(를) 드실 시간입니다! 💊\n복용 후 아래 약 복용 완료 버튼을 눌러주세요.",
+				"🦉 [약모고 정시 알림]\n\n지금은 %s님이 '%s'을(를) 드실 시간입니다! 💊\n복용 후 아래 버튼을 눌러주세요.",
 				logInfo.getUser().getName(), logInfo.getMedicineGroup().getName()
 			);
-			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+			// 마지막 인자로 guardian.getChatId()를 추가로 넘겨줌
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId(), guardian.getChatId());
 		});
 	}
 
@@ -125,7 +126,7 @@ public class SchedulerService {
 				"🦉 [경고: 30분 경과]\n\n%s님... '%s' 아직 안 드셨습니까?\n제가 지켜보고 있습니다... 빨리 드시고 아래 버튼 눌러주세요.",
 				logInfo.getUser().getName(), logInfo.getMedicineGroup().getName()
 			);
-			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId(), guardian.getChatId());
 		});
 	}
 
@@ -137,7 +138,7 @@ public class SchedulerService {
 				"🔥 [긴급: 1시간 경과!!!]\n\n아니 %s님!!! '%s' 왜 아직도 안 드시는 겁니까!!!\n당장 입에 털어 넣으세요!!!\n아래 버튼 눌렀!! 💊🔥🔥",
 				logInfo.getUser().getName(), logInfo.getMedicineGroup().getName()
 			);
-			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId(), guardian.getChatId());
 		});
 	}
 
@@ -149,7 +150,7 @@ public class SchedulerService {
 				"🔥🔥 [최후통첩: %d시간 경과]\n\n%s님!!! '%s' 안 드신 지 %d시간이나 지났습니다!!!\n제발 저를 그만 시험하시고 당장 💊아래 버튼을 눌러주세요!!!",
 				hoursOverdue, logInfo.getUser().getName(), logInfo.getMedicineGroup().getName(), hoursOverdue
 			);
-			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId());
+			telegramService.sendPhotoWithButton(guardian.getChatId(), photoUrl, caption, logInfo.getId(), guardian.getChatId());
 		});
 	}
 
