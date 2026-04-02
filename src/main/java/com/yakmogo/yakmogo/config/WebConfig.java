@@ -20,7 +20,8 @@ public class WebConfig implements WebMvcConfigurer {
 	public void addInterceptors(InterceptorRegistry registry) {
 		registry.addInterceptor(adminInterceptor)
 			.addPathPatterns("/api/**")
-			.excludePathPatterns("/api/public/**");
+			// 텔레그램 인증 API는 암호 없이 통과
+			.excludePathPatterns("/api/public/**", "/api/v1/auth/**");
 	}
 
 	@Override

