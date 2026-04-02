@@ -43,3 +43,6 @@ Thumbs.db
 
 ### Secrets ###
 secrets.yml
+
+### Config ###
+src/main/resources/application-local.yml
