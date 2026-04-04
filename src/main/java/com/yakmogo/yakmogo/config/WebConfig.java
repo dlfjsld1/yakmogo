@@ -25,7 +25,17 @@ public class WebConfig implements WebMvcConfigurer {
 		registry.addInterceptor(adminInterceptor)
 			.addPathPatterns("/api/**")
 			// 텔레그램 인증 API는 암호 없이 통과
-			.excludePathPatterns("/api/public/**", "/api/v1/auth/**");
+			.excludePathPatterns(
+				"/api/public/**",
+				"/api/v1/auth/**",
+				"/",               // 루트 경로
+				"/index.html",     // 메인 HTML
+				"/favicon.ico",    // 아이콘
+				"/assets/**",      // 빌드된 JS/CSS
+				"/static/**",      // 기타 정적 자원
+				"/*.svg",          // 로고 등
+				"/*.png"
+			);
 	}
 
 	@Override

@@ -20,10 +20,11 @@ public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
 	@Query(
 		"SELECT il FROM IntakeLog il " +
 		"JOIN FETCH il.user " +
-		"JOIN FETCH il.medicineGroup " +
+		"JOIN FETCH il.medicineGroup m " +
 		"WHERE il.intakeDate = :today " +
 		"AND il.status = 'PENDING' " +
-		"AND il.intakeTime <= :nowTime")
+		"AND il.intakeTime <= :nowTime " +
+		"AND m.isActive = true")
 	List<IntakeLog> findPendingLogs(
 		@Param("today") LocalDate today,
 		@Param("nowTime") LocalTime nowTime
@@ -50,4 +51,9 @@ public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
 	@Query("UPDATE IntakeLog il SET il.status = 'MISSED' " +
 		"WHERE il.intakeDate < :today AND il.status = 'PENDING'")
 	int updateMissedStatus(@Param("today") LocalDate today);
+
+	@Modifying
+	@Query("UPDATE IntakeLog il SET il.status = :status " +
+		"WHERE il.medicineGroup.id = :groupId AND il.status = 'PENDING'")
+	void cancelPendingLogsByGroupId(@Param("groupId") Long groupId, @Param("status") IntakeStatus status);
 }

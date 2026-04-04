@@ -98,6 +98,8 @@ public class MedicineGroupService {
 		// Soft Delete
 		group.deactivate();
 
+		intakeLogRepository.cancelPendingLogsByGroupId(groupId, IntakeStatus.CANCELLED);
+
 		System.out.println(group.getName() + "을(를) 복용 중단 처리했습니다.");
 	}
 
