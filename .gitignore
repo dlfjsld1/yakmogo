@@ -46,3 +46,7 @@ secrets.yml
 
 ### Config ###
 src/main/resources/application-local.yml
+
+### Static files ###
+src/main/resources/static/assets/
+src/main/resources/static/index.html
