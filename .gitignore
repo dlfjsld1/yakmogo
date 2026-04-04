@@ -48,5 +48,4 @@ secrets.yml
 src/main/resources/application-local.yml
 
 ### Static files ###
-src/main/resources/static/assets/
-src/main/resources/static/index.html
+src/main/resources/static
