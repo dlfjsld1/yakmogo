@@ -73,7 +73,8 @@ public class TelegramService {
 		String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
 		Map<String, Object> request = new HashMap<>();
 		request.put("chat_id", chatId);
-		String text = String.format("Your Chat ID is: <code>%s</code>\n\n위 번호를 눌러 복사해주세요! 💊", chatId);
+		String text = String.format("당신의 챗 아이디는 <code>" + chatId + "</code> 입니다.\n\n" +
+				"이 번호를 복사해서 관리자에게 알려주세요!");
 		request.put("text", text);
 		request.put("parse_mode", "HTML");
 		try {
