@@ -25,6 +25,7 @@ spring:
 telegram:
   bot:
     token: ${TELEGRAM_BOT_TOKEN}
+    username: yakson_bot
     chat-id: ${TELEGRAM_CHAT_ID}
 
 # 4. 관리자 패스워드 설정

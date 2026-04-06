@@ -47,7 +47,7 @@ public class TelegramPollingService {
 				for (JsonNode update : result) {
 					lastUpdateId = update.path("update_id").asLong(); // 책갈피 업데이트
 
-					// 누군가 '인라인 버튼'을 눌렀을 때 (callback_query)
+					// '인라인 버튼'을 눌렀을 때 (callback_query)
 					if (update.has("callback_query")) {
 						JsonNode callbackQuery = update.path("callback_query");
 						String callbackData = callbackQuery.path("data").asText(); // 버튼의 "TAKEN_15"
