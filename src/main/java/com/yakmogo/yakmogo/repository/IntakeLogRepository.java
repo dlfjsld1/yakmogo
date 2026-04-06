@@ -3,6 +3,7 @@ package com.yakmogo.yakmogo.repository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,6 +15,13 @@ import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.domain.MedicineGroup;
 
 public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
+
+	// 단건 조회 시 유저와 약 정보를 한꺼번에 가져옴
+	@Query("SELECT il FROM IntakeLog il " +
+		"JOIN FETCH il.user " +
+		"JOIN FETCH il.medicineGroup " +
+		"WHERE il.id = :logId")
+	Optional<IntakeLog> findByIdWithUserAndGroup(@Param("logId") Long logId);
 
 	// 감시자가 호출할 쿼리
 	// User와 MedicineGroup을 한번에 가져와서 (Join Fetch)를 해서 성능 저하 막음

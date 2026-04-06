@@ -76,7 +76,7 @@ public class TelegramBotHandler extends TelegramLongPollingBot {
 	private void processMedicineTaken(String callbackData, String chatId, String callbackQueryId) {
 		try {
 			Long logId = Long.parseLong(callbackData.split("_")[1]);
-			IntakeLog logInfo = intakeLogRepository.findById(logId).orElse(null);
+			IntakeLog logInfo = intakeLogRepository.findByIdWithUserAndGroup(logId).orElse(null);
 
 			// 약을 아직 안 먹은 상태(PENDING)일 때만 처리
 			if (logInfo != null && logInfo.getStatus() == IntakeStatus.PENDING) {
