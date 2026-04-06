@@ -106,7 +106,7 @@ public class SchedulerService {
 	// ---알림 발송 메서드들---
 
 	private void sendNormalAlert(IntakeLog logInfo) {
-		String photoUrl = "https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?q=80&w=600&auto=format&fit=crop";
+		String photoUrl = "https://github.com/dlfjsld1/yakmogo/blob/main/src/main/resources/static/images/level0_alert.jpg?raw=true";
 
 		logInfo.getUser().getGuardians().forEach(guardian -> {
 			String caption = String.format(
@@ -119,7 +119,7 @@ public class SchedulerService {
 	}
 
 	private void sendNaggingAlertLevel1(IntakeLog logInfo) {
-		String photoUrl = "https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?q=80&w=600&auto=format&fit=crop";
+		String photoUrl = "https://github.com/dlfjsld1/yakmogo/blob/main/src/main/resources/static/images/level1_alert.jpg?raw=true";
 
 		logInfo.getUser().getGuardians().forEach(guardian -> {
 			String caption = String.format(
@@ -131,7 +131,7 @@ public class SchedulerService {
 	}
 
 	private void sendNaggingAlertLevel2(IntakeLog logInfo) {
-		String photoUrl = "https://images.unsplash.com/photo-1550159930-40066082a4fc?q=80&w=600&auto=format&fit=crop";
+		String photoUrl = "https://github.com/dlfjsld1/yakmogo/blob/main/src/main/resources/static/images/level2_alert.jpg?raw=true";
 
 		logInfo.getUser().getGuardians().forEach(guardian -> {
 			String caption = String.format(
@@ -143,7 +143,7 @@ public class SchedulerService {
 	}
 
 	private void sendNaggingAlertLevel3(IntakeLog logInfo, int hoursOverdue) {
-		String photoUrl = "https://images.unsplash.com/photo-1550159930-40066082a4fc?q=80&w=600&auto=format&fit=crop";
+		String photoUrl = "https://github.com/dlfjsld1/yakmogo/blob/main/src/main/resources/static/images/level3_alert.jpg?raw=true";
 
 		logInfo.getUser().getGuardians().forEach(guardian -> {
 			String caption = String.format(
