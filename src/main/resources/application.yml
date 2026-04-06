@@ -1,5 +1,4 @@
 spring:
-  profiles:
   application:
     name: yakmogo # 프로젝트 이름
 
