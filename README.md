@@ -27,6 +27,30 @@
 - **Node.js + npm** (프론트엔드 빌드 시)
 ---
 
+## 📌 MariaDB 초기 설정
+
+약모고는 MariaDB의 `yakmogo` 데이터베이스와 `yakmogo_user` 계정을 사용합니다.
+
+```sql
+CREATE DATABASE yakmogo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'yakmogo_user'@'localhost' IDENTIFIED BY 'DB비밀번호';
+
+GRANT ALL PRIVILEGES ON yakmogo.* TO 'yakmogo_user'@'localhost';
+
+FLUSH PRIVILEGES;
+```
+
+`DB비밀번호`는 서버 실행 시 전달하는 `YAKMOGO_DB_PASSWORD` 값과 동일해야 합니다.
+
+```bash
+-DYAKMOGO_DB_PASSWORD=DB비밀번호
+```
+
+JPA 설정은 `ddl-auto: update`이므로, 데이터베이스와 계정만 준비되어 있으면 필요한 테이블은 애플리케이션 실행 시 자동으로 생성/갱신됩니다.
+
+---
+
 ## 🚀 배포 및 설치 가이드 (라즈베리파이 기준)
 
 > **사전 요구사항:** MariaDB가 별도로 설치되어 있어야 합니다.
