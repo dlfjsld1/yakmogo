@@ -214,7 +214,7 @@ class ApiIntegrationTests {
 			.andExpect(jsonPath("$.code").value("BAD_REQUEST"));
 		assertEquals(completedAt, pending.getActualTakenTime());
 
-		IntakeLog missed = saveIntake(user, medicine, IntakeStatus.MISSED);
+		IntakeLog missed = saveIntake(user, medicine, IntakeStatus.MISSED, LocalDate.now().minusDays(1));
 		mockMvc.perform(post("/api/v1/intakes/{logId}/complete", missed.getId())
 			.header("x-magic-token", token))
 			.andExpect(status().isBadRequest());
@@ -248,10 +248,14 @@ class ApiIntegrationTests {
 	}
 
 	private IntakeLog saveIntake(User user, MedicineGroup medicine, IntakeStatus status) {
+		return saveIntake(user, medicine, status, LocalDate.now());
+	}
+
+	private IntakeLog saveIntake(User user, MedicineGroup medicine, IntakeStatus status, LocalDate intakeDate) {
 		return intakeLogRepository.saveAndFlush(IntakeLog.builder()
 			.user(user)
 			.medicineGroup(medicine)
-			.intakeDate(LocalDate.now())
+			.intakeDate(intakeDate)
 			.intakeTime(LocalTime.of(9, 0))
 			.status(status)
 			.build());

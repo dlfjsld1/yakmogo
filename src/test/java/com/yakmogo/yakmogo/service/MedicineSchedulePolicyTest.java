@@ -46,6 +46,29 @@ class MedicineSchedulePolicyTest {
 			() -> policy.shouldTakeOn(medicine(ScheduleType.INTERVAL, "0", monday), monday));
 	}
 
+	@Test
+	void weeklyCalculationCrossesMonthYearAndLeapDayBoundaries() {
+		LocalDate leapDay = LocalDate.of(2024, 2, 29);
+		MedicineGroup weekly = medicine(ScheduleType.WEEKLY, "Thursday", leapDay.minusMonths(1));
+
+		assertTrue(policy.shouldTakeOn(weekly, leapDay));
+		assertFalse(policy.shouldTakeOn(weekly, leapDay.plusDays(1)));
+		assertTrue(policy.shouldTakeOn(
+			medicine(ScheduleType.WEEKLY, "Wednesday", LocalDate.of(2025, 12, 1)),
+			LocalDate.of(2025, 12, 31)
+		));
+	}
+
+	@Test
+	void intervalCalculationUsesCalendarDaysAcrossLeapDayAndNewYear() {
+		MedicineGroup leapInterval = medicine(ScheduleType.INTERVAL, "2", LocalDate.of(2024, 2, 28));
+		MedicineGroup yearInterval = medicine(ScheduleType.INTERVAL, "3", LocalDate.of(2025, 12, 30));
+
+		assertTrue(policy.shouldTakeOn(leapInterval, LocalDate.of(2024, 3, 1)));
+		assertFalse(policy.shouldTakeOn(leapInterval, LocalDate.of(2024, 2, 29)));
+		assertTrue(policy.shouldTakeOn(yearInterval, LocalDate.of(2026, 1, 2)));
+	}
+
 	private MedicineGroup medicine(ScheduleType type, String value, LocalDate startDate) {
 		return MedicineGroup.builder()
 			.name("테스트 약")
