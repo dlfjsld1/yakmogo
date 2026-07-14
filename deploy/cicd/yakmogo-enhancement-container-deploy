@@ -230,10 +230,15 @@ fi
 
 if [[ $deployment_ok == true && $runtime == systemd ]]; then
   systemctl disable "$SERVICE" >/dev/null || deployment_ok=false
+  [[ $deployment_ok == true ]] && systemctl reset-failed "$SERVICE" || deployment_ok=false
 fi
 if [[ $deployment_ok == true ]]; then
-  [[ $(systemctl is-active "$SERVICE" 2>/dev/null || true) == inactive ]] || deployment_ok=false
-  [[ $(systemctl is-enabled "$SERVICE" 2>/dev/null || true) == disabled ]] || deployment_ok=false
+  service_active=$(systemctl is-active "$SERVICE" 2>/dev/null || true)
+  service_enabled=$(systemctl is-enabled "$SERVICE" 2>/dev/null || true)
+  if [[ $service_active != inactive || $service_enabled != disabled ]]; then
+    echo "unexpected systemd state after cutover: active=$service_active enabled=$service_enabled" >&2
+    deployment_ok=false
+  fi
 fi
 
 if [[ $deployment_ok != true ]]; then
