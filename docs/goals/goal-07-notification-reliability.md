@@ -226,6 +226,14 @@ scheduling.enabled=false
 
 컴파일 경고 두 개는 기존 Telegram API deprecation과 Mockito 제네릭 unchecked 경고다. 테스트 실패는 아니며 이번 Goal 범위 밖 API 교체는 하지 않았다.
 
+feature CI 결과:
+
+- 구현 커밋: `c4496c2`
+- Backend CI: [run 29314585209](https://github.com/dlfjsld1/yakmogo/actions/runs/29314585209) 성공
+- Ubuntu Java 21 전체 backend 검증 성공
+- MariaDB container 초기화와 실제 migration 테스트 성공
+- `Confirm MariaDB migration test ran` 단계 성공
+
 ## 배포 및 검증
 
 2026-07-14에 Goal 6 웹 `dist`를 Goal 7 backend JAR의 정적 리소스에 포함해 고도화 8081에만 수동 배포했다.
@@ -301,4 +309,3 @@ curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:8081/api/v1/users
 - Goal 9: `RETRY_WAIT` 장기 체류와 `EXHAUSTED` 건수 관측, DB 백업·복원 절차를 운영 설계에 포함한다.
 - Goal 10: 운영 적용 전 중복 데이터 재점검, V2 migration dry-run, Telegram 실제 발송 승인 범위를 최종 릴리스 보고서에 포함한다.
 - Android 2차 로드맵: 현재 공통 `IntakeCommandService`와 채널 비종속 알림 정책 경계를 평가하되 Android 코드·API·테이블은 이번 단계에 추가하지 않는다.
-
