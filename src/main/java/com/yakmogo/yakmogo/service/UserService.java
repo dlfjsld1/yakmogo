@@ -3,6 +3,7 @@ package com.yakmogo.yakmogo.service;
 import java.util.List;
 
 import com.yakmogo.yakmogo.auth.AuthorizationService;
+import com.yakmogo.yakmogo.auth.ForbiddenException;
 import com.yakmogo.yakmogo.domain.Guardian;
 import com.yakmogo.yakmogo.domain.User;
 import com.yakmogo.yakmogo.dto.ReceiverCreateRequest;
@@ -51,7 +52,7 @@ public class UserService {
 	public void addReceiver(Long userId, ReceiverCreateRequest request) {
 		authorizationService.requireUserAccess(userId);
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("없는 유저입니다."));
+			.orElseThrow(() -> new ResourceNotFoundException("없는 유저입니다."));
 
 		Guardian guardian = Guardian.builder()
 			.user(user)
@@ -69,14 +70,14 @@ public class UserService {
 		authorizationService.requireUserAccess(userId);
 		// 삭제할 수신자 찾음
 		Guardian guardian = guardianRepository.findById(receiverId)
-			.orElseThrow(() -> new IllegalArgumentException("해당 수신자를 찾을 수 없습니다."));
+			.orElseThrow(() -> new ResourceNotFoundException("해당 수신자를 찾을 수 없습니다."));
 
 		// 해당 유저의 수신자인지 확인
 		if (!guardian.getUser().getId().equals(userId)) {
-			throw new IllegalArgumentException("잘못된 요청입니다. (해당 유저의 수신자가 아닙니다)");
+			throw new ForbiddenException("해당 사용자의 알림 수신자가 아닙니다.");
 		}
 
-		guardianRepository.delete(guardian);
+		guardian.getUser().removeGuardian(guardian);
 
 		System.out.println("수신자 삭제 완료: ID=" + receiverId);
 	}
@@ -85,7 +86,7 @@ public class UserService {
 	public void deleteUser(Long userId) {
 		authorizationService.requireAdmin();
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("없는 유저입니다."));
+			.orElseThrow(() -> new ResourceNotFoundException("없는 유저입니다."));
 
 		userRepository.delete(user); // Cascade
 		System.out.println("복용자 및 관련 데이터 삭제 완료: " + user.getName());
@@ -95,7 +96,7 @@ public class UserService {
 	public User getUser(Long userId) {
 		authorizationService.requireUserAccess(userId);
 		return userRepository.findByIdWithGuardians(userId)
-			.orElseThrow(() -> new IllegalArgumentException("없는 유저입니다."));
+			.orElseThrow(() -> new ResourceNotFoundException("없는 유저입니다."));
 	}
 
 	// 모든 가족 목록 가져오기

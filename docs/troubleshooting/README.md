@@ -16,19 +16,22 @@
 - [배포와 런타임](deployment-and-runtime.md): 운영·고도화 환경 분리, 준비 상태 확인, 알림 격리, 비밀정보 분리
 - [CI/CD](ci-cd.md): 기본 CI 도입과 오래된 `origin/main` 기준선 문제
 - [DB 마이그레이션](database-migration.md): H2와 MariaDB 차이, 권한 출력, Flyway baseline의 한계
+- [API 검증과 복용 상태 전이](api-validation-and-state-transition.md): Bean Validation, orphan removal, 일정 계산, 동시 완료 잠금
 
 ## Goal별 문서
 
 - [Goal 1: 품질 기반과 고도화 환경 격리](../goals/goal-01-quality-hardening.md)
 - [Goal 2: 인증·인가 강화](../goals/goal-02-auth-hardening.md)
 - [Goal 3: 런타임 설정과 비밀정보 분리](../goals/goal-03-runtime-config.md)
-- [Goal 4: Flyway 기반 DB 마이그레이션](../goals/goal-04-database-migration.md) — 승인 지점 1 대기
+- [Goal 4: Flyway 기반 DB 마이그레이션](../goals/goal-04-database-migration.md) — 완료
+- [Goal 5: 백엔드 API 테스트·검증·상태 전이](../goals/goal-05-backend-test-suite.md) — 병합 승인 대기
 
 ## 빠르게 찾는 법
 
 1. HTTP `401`·`403`, Telegram 링크 문제는 `authentication.md`를 확인한다.
 2. 서비스는 active인데 접속이 안 되거나 8080·8081이 혼동되면 `deployment-and-runtime.md`를 확인한다.
 3. 브랜치에 CI가 실행되지 않거나 enhancement 기준선이 이상하면 `ci-cd.md`를 확인한다.
+4. API 400·404 구분, validation, 복용 완료 중복, 보호자 삭제는 `api-validation-and-state-transition.md`를 확인한다.
 
 ## 새 사례 추가 기준
 

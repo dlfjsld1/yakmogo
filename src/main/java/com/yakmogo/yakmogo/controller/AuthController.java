@@ -16,6 +16,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -26,7 +29,7 @@ public class AuthController {
 	private final AuthTokenService authTokenService;
 
 	@PostMapping("/telegram")
-	public ResponseEntity<?> loginViaTelegram(@RequestBody TelegramLoginRequest request) {
+	public ResponseEntity<?> loginViaTelegram(@Valid @RequestBody TelegramLoginRequest request) {
 		String chatId = authTokenService.verifyLoginProof(request.proof());
 
 		// 1. findByGuardians_ChatId로 유저들 조회
@@ -36,7 +39,7 @@ public class AuthController {
 		if (managedUsers.isEmpty()) {
 			log.warn("[인증 실패] 등록되지 않은 Telegram 사용자");
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-				.body("등록되지 않은 사용자입니다. 관리자에게 문의하세요.");
+				.body(ApiError.of("UNAUTHORIZED", "등록되지 않은 사용자입니다. 관리자에게 문의하세요."));
 		}
 
 		// 3. 성공 시: 유저 정보(ID, 이름) 반환
@@ -62,6 +65,9 @@ public class AuthController {
 		return ResponseEntity.ok(response);
 	}
 
-	public record TelegramLoginRequest(String proof) {
+	public record TelegramLoginRequest(
+		@NotBlank(message = "Telegram 로그인 증명은 필수입니다.")
+		String proof
+	) {
 	}
 }

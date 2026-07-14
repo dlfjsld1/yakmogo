@@ -1,8 +1,5 @@
 package com.yakmogo.yakmogo.service;
 
-import com.yakmogo.yakmogo.domain.IntakeLog;
-import com.yakmogo.yakmogo.domain.IntakeStatus;
-import com.yakmogo.yakmogo.repository.IntakeLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +21,8 @@ public class TelegramBotHandler extends TelegramLongPollingBot {
 	@Value("${telegram.bot.username}")
 	private String botUsername;
 
-	private final IntakeLogRepository intakeLogRepository;
 	private final TelegramService telegramService;
+	private final IntakeCommandService intakeCommandService;
 
 	@Override
 	public String getBotUsername() {
@@ -76,22 +73,14 @@ public class TelegramBotHandler extends TelegramLongPollingBot {
 	private void processMedicineTaken(String callbackData, String chatId, String callbackQueryId) {
 		try {
 			Long logId = Long.parseLong(callbackData.split("_")[1]);
-			IntakeLog logInfo = intakeLogRepository.findByIdWithUserAndGroup(logId).orElse(null);
+			IntakeCompletion completion = intakeCommandService.completeFromTelegram(logId, chatId);
+			String msg = String.format("✅ %s님의 오늘 '%s' 복용이 확인되었습니다!\n%s 에 복용하셨어요.\n저는 이제 퇴근할게요! 💤",
+				completion.userName(),
+				completion.medicineName(),
+				completion.actualTakenTime().toLocalTime().toString().substring(0, 5));
 
-			// 약을 아직 안 먹은 상태(PENDING)일 때만 처리
-			if (logInfo != null && logInfo.getStatus() == IntakeStatus.PENDING) {
-				// 상태 TAKEN으로 바꾸고 실제 먹은 시간까지 기록
-				logInfo.markAsTaken();
-				intakeLogRepository.save(logInfo);
-
-				String msg = String.format("✅ %s님의 오늘 '%s' 복용이 확인되었습니다!\n%s 에 복용하셨어요.\n저는 이제 퇴근할게요! 💤",
-					logInfo.getUser().getName(),
-					logInfo.getMedicineGroup().getName(),
-					logInfo.getActualTakenTime().toLocalTime().toString().substring(0, 5));
-
-				telegramService.sendMessage(chatId, msg);
-				log.info("[약 복용 확인] LogID: {} 처리 완료", logId);
-			}
+			telegramService.sendMessage(chatId, msg);
+			log.info("[약 복용 확인] LogID: {} 처리 완료", logId);
 
 			// 텔레그램 버튼의 '로딩(모래시계)' 표시 끄기
 			answerCallbackQuery(callbackQueryId);

@@ -18,7 +18,7 @@ public class User {
 
 	private String name;
 
-	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<Guardian> guardians = new ArrayList<>();
 
 	// 유저가 삭제되면 '약 그룹'도 같이 삭제
@@ -38,5 +38,9 @@ public class User {
 
 	public void addGuardian(Guardian guardian) {
 		this.guardians.add(guardian);
+	}
+
+	public void removeGuardian(Guardian guardian) {
+		this.guardians.remove(guardian);
 	}
 }
