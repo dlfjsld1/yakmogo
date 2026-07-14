@@ -3,6 +3,14 @@
 가족들의 투약 관리를 위해 만들어진 토이 프로젝트입니다.  
 사용자의 투약 스케줄을 관리하고, 텔레그램 봇을 통해 정해진 시간에 알림을 발송합니다.
 
+## 📚 개발 및 문제 해결 문서
+
+- [Goal별 설계·변경·검증 기록](docs/goals/README.md)
+- [시행착오 및 트러블슈팅 인덱스](docs/troubleshooting/README.md)
+- [인증과 인가 트러블슈팅](docs/troubleshooting/authentication.md)
+- [배포와 런타임 트러블슈팅](docs/troubleshooting/deployment-and-runtime.md)
+- [CI/CD 트러블슈팅](docs/troubleshooting/ci-cd.md)
+
 ## 📌 텔레그램 봇 설정 방법
 
 1. 텔레그램 앱에서 **@yakson_bot**을 검색하여 대화방에 입장합니다.
