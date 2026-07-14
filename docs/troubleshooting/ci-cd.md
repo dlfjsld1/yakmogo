@@ -441,3 +441,24 @@ runner는 image artifact를 고정 staging에 놓기만 한다. root helper가 c
 ### 재발 방지
 
 CI 계약 검사는 runner가 Docker group에 들어가는 설치 명령과 helper의 임의 prune·systemctl 변경 명령을 허용하지 않는다.
+
+## 사례 14: MariaDB 11.8이 현재 Flyway 공식 확인 범위보다 새 버전임
+
+### 관찰
+
+Docker shadow가 `yakmogo_enhancement`에 연결해 migration을 검증할 때 Flyway가 다음 취지의 경고를 남겼다.
+
+```text
+MariaDB 11.8 is newer than this version of Flyway.
+Latest tested MariaDB version: 11.2.
+```
+
+동시에 3개 migration validation과 schema version 2 확인은 성공했고 애플리케이션도 정상 시작했다.
+
+### 판단
+
+이 경고는 Docker 때문에 새로 생긴 DB 오류가 아니라 현재 dependency와 설치된 MariaDB 버전의 지원 범위 차이다. shadow 전환 범위에서 Flyway dependency를 임의로 올리지 않는다.
+
+### 후속 작업
+
+Spring Boot dependency management가 선택한 Flyway 버전과 최신 MariaDB 지원표를 별도 검토한다. 버전을 변경한다면 MariaDB migration test, enhancement DB backup, restore rehearsal을 함께 수행한다.

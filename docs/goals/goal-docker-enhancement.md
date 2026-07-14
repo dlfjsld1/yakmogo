@@ -2,7 +2,7 @@
 
 ## 현재 상태
 
-`feature/docker-enhancement`에서 구현·검증 중이다. Docker image artifact와 18081 shadow 배포까지만 범위에 포함한다. 기존 systemd 8081 중지, 컨테이너 8081 전환, enhancement 자동 container 배포는 아직 수행하지 않는다.
+`feature/docker-enhancement`에서 Docker image artifact와 18081 shadow 배포 검증을 완료했다. 기존 systemd 8081 중지, 컨테이너 8081 전환, enhancement 자동 container 배포는 아직 수행하지 않았다.
 
 ## 한 문장 요약
 
@@ -156,3 +156,49 @@ shadow 검증 뒤 다음 내용을 보고하고 멈춘다.
 - cutover·rollback 명령과 예상 중단 시간
 
 승인 전에는 host 8081을 container에 넘기지 않는다.
+
+## 실제 shadow 검증 결과
+
+2026-07-14 `feature/docker-enhancement` 커밋 `9e1deeb` 기준으로 검증했다.
+
+- feature CI: [run 29322547273](https://github.com/dlfjsld1/yakmogo/actions/runs/29322547273) 성공
+- backend test·bootJar·통합 SPA JAR 검증: 성공
+- image base: `eclipse-temurin:21.0.11_10-jre-noble`
+- 실제 base manifest digest: `sha256:373787d1d45a87f084fda43e7de0e9acf5eedee049446efac738f13587ec4c64`
+- image ID: `sha256:7a6b733c70cc6eecedfc529942914fab42990ea6a9bcf5eab0a6d4aad3b4cde4`
+- image architecture/OS: `arm64` / `linux`
+- image tar: 약 159 MiB
+- image tar SHA-256: `5291a042d935e877757aadee3e9e514fa185d82fd82520bf6991be339cb2308e`
+- image 내부 JAR SHA-256 label: `2b3cf8054bf4ef6990a61ef7516157c716aed8537ea8d29d29b335f6f3a36602`
+- 실행 user: `10001:10001`
+- network: `host`
+- read-only root filesystem: true
+- capability: `ALL` drop
+- no-new-privileges: true
+- `/tmp`: 64 MiB, noexec, nosuid
+
+HTTP와 UI:
+
+- 8080 `/`: 200
+- systemd 8081 `/`: 200
+- container 18081 `/`: 200
+- container 18081 예상 JS: 200
+- container 18081 보호 API: 401
+- React 화면: `yakmogo-web`, 관리자 인증 입력과 버튼 렌더링 성공
+- 브라우저 console error: 0
+
+DB와 프로세스:
+
+- Flyway 3개 migration validation 성공
+- `yakmogo_enhancement` schema version 2 확인
+- 운영 8080 PID `1794958` 불변
+- systemd 8081 PID `1967090` 불변
+- 운영 JAR SHA-256 `b7670b8089e887181f78592e88dbf7bb12f45427685dfa3deb3a6d73bcdc79ce` 불변
+- enhancement JAR SHA-256 `7a4623f56ee544951c85c1c8b73e19276ba49ec0ca52e60251e4477b0b61c92c` 불변
+- Syncthing, Home Assistant, Jellyfin, Uptime Kuma, Transmission, Gluetun container ID 불변
+
+관찰된 잔여 위험:
+
+- 현재 Flyway는 MariaDB 11.8이 공식 확인 범위 11.2보다 새 버전이라는 경고를 출력한다. migration validation은 성공했지만 Goal 9 이전 후속 검토 대상으로 남긴다.
+- image tar는 첫 build 기준 159 MiB이므로 보관·삭제 정책을 Goal 9에서 정해야 한다.
+- host network는 MariaDB loopback 연결을 유지하는 대신 network namespace 격리를 줄인다.
