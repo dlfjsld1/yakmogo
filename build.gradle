@@ -45,3 +45,21 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+def webDistPath = providers.gradleProperty('webDistDir')
+
+tasks.named('processResources') {
+	if (webDistPath.isPresent()) {
+		def webDist = file(webDistPath.get())
+		doFirst {
+			if (!new File(webDist, 'index.html').isFile()) {
+				throw new GradleException("webDistDir must contain index.html: ${webDist}")
+			}
+		}
+
+		exclude 'static/index.html', 'static/assets/**', 'static/vite.svg'
+		from(webDist) {
+			into 'static'
+		}
+	}
+}

@@ -241,3 +241,108 @@ CI 로그와 로컬 로그를 비교하고, 환경 권한 오류를 애플리케
 - Goal 1 Web enhancement: <https://github.com/dlfjsld1/yakmogo-web/actions/runs/29301529443>
 - Goal 2 Backend feature: <https://github.com/dlfjsld1/yakmogo/actions/runs/29302209037>
 - Goal 2 Web feature: <https://github.com/dlfjsld1/yakmogo-web/actions/runs/29302210279>
+
+## 사례 5: 완성된 JAR overlay가 과거 SPA asset을 남김
+
+### 상황
+
+Goal 6·7의 수동 통합 JAR은 backend `bootJar`를 만든 뒤 `jar uf`로 web `dist`를 덮었다.
+
+### 발생한 증상
+
+JAR 목록에는 새 `index-CdQ-TAxj.js`와 과거 `index-Doi2ps8g.js`가 함께 있었다. 새 index는 올바른 bundle을 참조해 8081은 정상 동작했지만 artifact가 현재 web build와 정확히 일치하지 않았다.
+
+### 원인
+
+ZIP/JAR update는 같은 경로를 교체하지만 새 dist에 없는 과거 파일을 삭제하지 않는다. hash 기반 SPA asset은 build마다 이름이 바뀌므로 단순 overlay만 반복하면 오래된 파일이 누적된다.
+
+### 해결
+
+`-PwebDistDir` Gradle 입력이 있으면 기존 backend resource의 SPA index·assets·vite icon을 제외하고 새 dist를 `static` source로 추가했다. Telegram 이미지처럼 backend가 소유하는 `static/images`는 유지한다.
+
+### 검증
+
+verifier가 JAR의 `static/assets` 집합과 web `dist/assets` 집합을 정렬 비교한다. fixture에 `old.js`를 추가하면 의도대로 실패하고 실제 Goal 6 dist는 통과했다.
+
+### 배운 점
+
+브라우저가 정상이라는 사실만으로 release artifact가 깨끗하다고 볼 수 없다. hash asset은 포함 여부뿐 아니라 집합의 정확한 일치를 검사해야 한다.
+
+## 사례 6: JAR asset directory 항목을 실제 파일로 오인함
+
+### 증상
+
+첫 verifier 정상 fixture가 다음 diff로 실패했다.
+
+```text
+@@
++
+ app.js
+```
+
+### 조사 과정
+
+`jar tf` 출력을 확인하니 `BOOT-INF/classes/static/assets/` directory entry가 있었다. prefix를 먼저 제거한 뒤 `/`로 끝나는 항목을 거르면서 directory가 빈 문자열로 바뀌어 비교 목록에 남았다.
+
+### 해결
+
+원본 JAR entry에서 `/`로 끝나는 directory를 먼저 제거하고 그 다음 asset prefix를 제거했다.
+
+```text
+jar entries -> directory 제거 -> prefix 제거 -> sort
+```
+
+### 재발 방지
+
+정상, stale, missing 세 fixture가 feature CI에서 매번 실행된다.
+
+## 사례 7: checksum 파일이 CI runner 절대 경로를 기록함
+
+### 상황
+
+첫 로컬 release script는 절대 경로 변수에 바로 `sha256sum`을 실행했다.
+
+### 증상
+
+checksum 파일에 다음처럼 빌드 머신 경로가 포함됐다.
+
+```text
+<hash> */c/Users/.../build/release/yakmogo-enhancement-local.jar
+```
+
+GitHub runner에서는 `/home/runner/work/...`가 들어가므로 Raspberry Pi에서 `sha256sum -c`로 그대로 재사용할 수 없다.
+
+### 해결
+
+release directory로 이동한 subshell에서 basename에 대해 checksum을 생성한다.
+
+```text
+<hash>  yakmogo-enhancement-<sha>.jar
+```
+
+원격 helper는 checksum 파일 경로 자체를 신뢰하지 않고 고정 staging 파일의 hash를 직접 다시 계산할 계획이다.
+
+checksum의 목적은 독립된 두 빌드가 동일하다는 보장이 아니라 CI artifact와 원격 전송본이 byte 단위로 같다는 보장이다. 배포 단계에서 JAR을 다시 빌드하지 않고 검증된 artifact를 그대로 전송해야 한다.
+
+## 사례 8: sandbox의 Git Bash 표준 도구 차단
+
+### 증상
+
+첫 로컬 shell test에서 다음 오류가 발생했다.
+
+```text
+dirname: command not found
+mktemp: command not found
+```
+
+### 원인
+
+스크립트 문법이나 PATH 선언 문제가 아니라 sandbox가 Git Bash의 `usr/bin` 표준 도구 실행을 제한했다. 같은 Bash executable을 허용된 작업공간 접근으로 실행하자 `dirname`, `mktemp`, `find`, `jar`, `unzip`이 정상 동작했다.
+
+### 해결과 판단
+
+프로젝트 코드를 바꾸지 않고 동일 테스트를 제한적으로 승인해 다시 실행했다. 이후 정상 fixture 성공과 두 실패 fixture 거부를 확인했다.
+
+### 배운 점
+
+CI shell script 실패도 애플리케이션 실패와 마찬가지로 명령 부재, sandbox 차단, 스크립트 논리를 분리해 봐야 한다.

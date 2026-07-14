@@ -59,3 +59,10 @@ jobs:
           test -f "$report"
           grep -q 'tests="1"' "$report"
           grep -q 'skipped="0"' "$report"
+
+      - name: Validate release candidate tooling
+        shell: bash
+        run: |
+          chmod +x scripts/ci/*.sh
+          bash -n scripts/ci/*.sh
+          scripts/ci/test-integrated-jar-verifier.sh

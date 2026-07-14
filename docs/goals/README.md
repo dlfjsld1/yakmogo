@@ -41,7 +41,8 @@
 - [Goal 4: Flyway 기반 DB 마이그레이션](goal-04-database-migration.md) — 완료
 - [Goal 5: 백엔드 API 테스트·검증·상태 전이](goal-05-backend-test-suite.md) — 완료
 - [Goal 6: React 약 관리 UI·UX](goal-06-medicine-ui.md) — 완료
-- [Goal 7: 알림 신뢰성 고도화](goal-07-notification-reliability.md) — 병합 승인 대기
+- [Goal 7: 알림 신뢰성 고도화](goal-07-notification-reliability.md) — 완료
+- [Goal 8: CI/CD와 8081 자동 배포·롤백](goal-08-ci-cd.md) — 자동 배포 활성화 전 승인 대기
 
 ## Goal 1~10 실행 프롬프트
 

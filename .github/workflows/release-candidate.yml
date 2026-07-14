@@ -1,0 +1,84 @@
+name: Enhancement Release Candidate
+
+on:
+  push:
+    branches:
+      - enhancement
+
+permissions:
+  contents: read
+
+concurrency:
+  group: enhancement-release
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    if: github.ref == 'refs/heads/enhancement'
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-password
+          MARIADB_DATABASE: yakmogo_test
+          MARIADB_USER: yakmogo_test
+          MARIADB_PASSWORD: test-database-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost -uroot -ptest-root-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MARIADB_TEST_URL: jdbc:mariadb://127.0.0.1:3306/yakmogo_test
+      MARIADB_TEST_USER: yakmogo_test
+      MARIADB_TEST_PASSWORD: test-database-password
+    steps:
+      - name: Check out backend enhancement
+        uses: actions/checkout@v4
+
+      - name: Check out web enhancement
+        uses: actions/checkout@v4
+        with:
+          repository: dlfjsld1/yakmogo-web
+          ref: enhancement
+          path: yakmogo-web
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: yakmogo-web/package-lock.json
+
+      - name: Verify web
+        working-directory: yakmogo-web
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+
+      - name: Build and verify integrated JAR
+        run: |
+          chmod +x scripts/ci/*.sh gradlew
+          scripts/ci/build-release-candidate.sh yakmogo-web/dist
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: yakmogo-enhancement-${{ github.sha }}
+          path: |
+            build/release/*.jar
+            build/release/*.sha256
+          if-no-files-found: error
+          retention-days: 7
