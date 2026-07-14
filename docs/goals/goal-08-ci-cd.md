@@ -123,6 +123,14 @@ backend enhancement push
 - 서버 전송: 하지 않음
 - 서비스 재시작: 하지 않음
 
+feature CI:
+
+- 커밋: `c23f43c`
+- [Backend CI run 29315810864](https://github.com/dlfjsld1/yakmogo/actions/runs/29315810864) 성공
+- Java 21 backend test·bootJar 성공
+- MariaDB migration test 실제 실행 확인 성공
+- release tooling shell 문법과 정상·stale·missing fixture 성공
+
 checksum은 CI에서 만든 한 artifact와 원격으로 전송된 바로 그 파일이 동일한지 확인하는 용도다. 별도 시점에 다시 빌드한 JAR이 같은 hash일 것이라고 가정하지 않는다. 승인 후 배포 판단에는 CI artifact의 checksum을 사용한다.
 
 ## 승인 후 구현할 전체 흐름
