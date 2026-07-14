@@ -33,7 +33,7 @@ class FlywayMariaDbIntegrationTest {
 			.load();
 
 		flyway.clean();
-		assertEquals(1, flyway.migrate().migrationsExecuted);
+		assertEquals(2, flyway.migrate().migrationsExecuted);
 		assertTrue(flyway.validateWithResult().validationSuccessful);
 		verifyRepresentativePersistence();
 		assertEquals(0, flyway.migrate().migrationsExecuted);
@@ -50,6 +50,8 @@ class FlywayMariaDbIntegrationTest {
 				long userId = insertAndReturnId(connection, "INSERT INTO users(name) VALUES ('MariaDB 검증 사용자')");
 				long medicineId = insertMedicine(connection, userId);
 				long intakeId = insertIntake(connection, userId, medicineId);
+				long guardianId = insertAndReturnId(connection,
+					"INSERT INTO guardian(chat_id,name,user_id) VALUES ('migration-chat','보호자'," + userId + ")");
 
 				try (PreparedStatement statement = connection.prepareStatement(
 					"SELECT is_active, schedule_type, intake_time FROM medicine_group WHERE id=?"
@@ -77,6 +79,11 @@ class FlywayMariaDbIntegrationTest {
 						statement.executeUpdate("INSERT INTO guardian(chat_id,name,user_id) VALUES ('invalid','invalid',-1)");
 					}
 				});
+				assertThrows(SQLException.class, () -> insertIntake(connection, userId, medicineId));
+
+				insertNotificationDelivery(connection, intakeId, guardianId, "ON_TIME");
+				assertThrows(SQLException.class,
+					() -> insertNotificationDelivery(connection, intakeId, guardianId, "ON_TIME"));
 				assertFalse(connection.isClosed());
 			} finally {
 				connection.rollback();
@@ -123,6 +130,24 @@ class FlywayMariaDbIntegrationTest {
 				assertTrue(keys.next());
 				return keys.getLong(1);
 			}
+		}
+	}
+
+	private void insertNotificationDelivery(
+		Connection connection,
+		long intakeId,
+		long guardianId,
+		String alertKey
+	) throws SQLException {
+		try (PreparedStatement statement = connection.prepareStatement(
+			"INSERT INTO notification_delivery(" +
+				"intake_log_id,guardian_id,alert_key,status,attempt_count" +
+				") VALUES (?, ?, ?, 'PENDING', 0)"
+		)) {
+			statement.setLong(1, intakeId);
+			statement.setLong(2, guardianId);
+			statement.setString(3, alertKey);
+			statement.executeUpdate();
 		}
 	}
 }

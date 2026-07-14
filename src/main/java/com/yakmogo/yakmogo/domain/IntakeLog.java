@@ -12,6 +12,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(
+	name = "uk_intake_log_medicine_date",
+	columnNames = {"medicine_group_id", "intake_date"}
+))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IntakeLog {
