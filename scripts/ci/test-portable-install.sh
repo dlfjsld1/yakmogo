@@ -36,8 +36,15 @@ trap cleanup EXIT
 phase=fresh-install
 ./install.sh
 phase=create-probe
-docker compose --env-file .env -f compose.yml exec -T yakmogo-mariadb sh -c \
-  'MARIADB_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -uroot "$MARIADB_DATABASE" -e "CREATE TABLE portable_restore_probe (id INT PRIMARY KEY); INSERT INTO portable_restore_probe VALUES (1)"'
+if ! probe_output=$(docker compose --env-file .env -f compose.yml exec -T yakmogo-mariadb sh -c \
+  'MARIADB_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -uroot "$MARIADB_DATABASE" -e "CREATE TABLE portable_restore_probe (id INT PRIMARY KEY); INSERT INTO portable_restore_probe VALUES (1)"' \
+  2>&1); then
+  annotation=${probe_output//'%'/'%25'}
+  annotation=${annotation//$'\r'/'%0D'}
+  annotation=${annotation//$'\n'/'%0A'}
+  echo "::error title=Portable database probe failure::$annotation"
+  exit 1
+fi
 phase=backup
 backup_output=$(./backup.sh "$work_dir/saved-backup")
 backup_file=${backup_output#BACKUP_FILE=}
