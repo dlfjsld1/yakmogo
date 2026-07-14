@@ -49,9 +49,9 @@ public class IntakeLog {
 	}
 
 	// 약 먹을 때 상태 변경
-	public void markAsTaken() {
+	public void markAsTaken(LocalDateTime completedAt) {
 		this.status = IntakeStatus.TAKEN;
-		this.actualTakenTime = LocalDateTime.now();
+		this.actualTakenTime = completedAt;
 	}
 
 	@Builder

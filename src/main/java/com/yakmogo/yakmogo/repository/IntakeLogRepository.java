@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,9 +15,12 @@ import com.yakmogo.yakmogo.domain.IntakeLog;
 import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.domain.MedicineGroup;
 
+import jakarta.persistence.LockModeType;
+
 public interface IntakeLogRepository extends JpaRepository<IntakeLog, Long> {
 
 	// 단건 조회 시 유저와 약 정보를 한꺼번에 가져옴
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT il FROM IntakeLog il " +
 		"JOIN FETCH il.user " +
 		"JOIN FETCH il.medicineGroup " +

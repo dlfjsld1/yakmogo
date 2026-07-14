@@ -122,6 +122,15 @@ class AuthIntegrationTests {
 	}
 
 	@Test
+	void rejectsBlankLoginProofAsInvalidInput() throws Exception {
+		mockMvc.perform(post("/api/v1/auth/telegram")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"proof\":\" \"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+	}
+
+	@Test
 	void telegramTokenCannotMutateAnotherUsersMedicineOrIntake() throws Exception {
 		User allowedUser = saveUserWithGuardian("허용 사용자", "telegram-chat");
 		User deniedUser = saveUserWithGuardian("다른 사용자", "different-chat");

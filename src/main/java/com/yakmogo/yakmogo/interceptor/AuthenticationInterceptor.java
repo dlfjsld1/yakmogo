@@ -10,6 +10,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import com.yakmogo.yakmogo.auth.AuthTokenService;
 import com.yakmogo.yakmogo.auth.AuthenticatedPrincipal;
 import com.yakmogo.yakmogo.auth.AuthenticationContext;
+import com.yakmogo.yakmogo.auth.UnauthorizedException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -46,8 +47,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
 			return true;
 		}
 
-		response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "인증이 필요합니다.");
-		return false;
+		throw new UnauthorizedException("인증이 필요합니다.");
 	}
 
 	private boolean matchesAdminPassword(String requestPassword) {

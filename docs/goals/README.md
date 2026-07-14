@@ -38,7 +38,8 @@
 - [Goal 1: 품질 기반과 고도화 환경 격리](goal-01-quality-hardening.md)
 - [Goal 2: 인증·인가 강화](goal-02-auth-hardening.md)
 - [Goal 3: 런타임 설정과 비밀정보 분리](goal-03-runtime-config.md)
-- [Goal 4: Flyway 기반 DB 마이그레이션](goal-04-database-migration.md) — 승인 지점 1 대기
+- [Goal 4: Flyway 기반 DB 마이그레이션](goal-04-database-migration.md) — 완료
+- [Goal 5: 백엔드 API 테스트·검증·상태 전이](goal-05-backend-test-suite.md) — 진행 중
 
 ## Goal 1~10 실행 프롬프트
 
