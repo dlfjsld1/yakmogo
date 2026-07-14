@@ -1,10 +1,10 @@
-# Goal 10 실행 프롬프트: 전체 검증과 main 병합 준비
+# Goal 10 실행 프롬프트: 전체 검증과 main 승격
 
 이 작업을 Goal로 생성하고 완료할 때까지 진행한다. [공통 고도화 원칙](common-principles.md)을 모두 적용한다.
 
 ## 목표
 
-backend와 web의 최신 `enhancement`를 릴리스 후보로 검증하고 `main` 병합 가능 상태까지 준비한다. 사용자 승인 전에는 `main` 병합과 운영 8080 배포를 실행하지 않는다.
+backend와 web의 최신 `enhancement`를 릴리스 후보로 검증한다. 검증이 모두 성공하면 두 저장소의 기존 `main`을 같은 버전의 이전판 보존 브랜치로 먼저 원격에 보존하고, 확인된 `enhancement`를 `main`으로 승격한다. `main` 승격은 운영 8080 배포나 운영 DB 변경을 의미하지 않는다.
 
 ## 전체 검증
 
@@ -18,6 +18,16 @@ backend와 web의 최신 `enhancement`를 릴리스 후보로 검증하고 `main
 - `main` 대비 커밋, 파일, DB, 환경변수, 배포 설정 변경을 정리한다.
 - 알려진 이슈, 보안 위험, 운영 제한, 후속 과제를 작성한다.
 - 릴리스 tag 후보와 코드·JAR·DB 롤백 지점을 제안한다.
+
+## 기존 main 버전 보존과 고도화본 승격
+
+- backend와 web의 `origin/main`을 다시 fetch하고 Goal 10 검증을 시작한 기준 commit과 같은지 확인한다. 검증 중 `main`이 바뀌었으면 병합하지 말고 변경분을 다시 검토한다.
+- 현재 전체 시스템의 이전판 보존 브랜치 후보는 `archive/v0.0.7-pre-enhancement`다. backend `0.0.7-SNAPSHOT`을 기준으로 한 이름이며, Goal 10 실행 시 실제 버전과 원격 이름 충돌을 다시 확인한다.
+- 두 저장소에서 보존 브랜치가 각각 승격 직전 `origin/main` commit을 정확히 가리키게 만든 뒤 원격에 push한다.
+- 두 원격 보존 브랜치의 commit SHA를 기록하고 실제 이전 `main` SHA와 일치하는지 확인하기 전에는 어느 저장소의 `main`도 변경하지 않는다.
+- 보존 확인 후 backend와 web의 검증된 `enhancement`를 각각 `main`에 `--no-ff`로 병합하고 원격에 push한다. 보호 브랜치 정책이 직접 push를 막으면 같은 변경으로 PR을 만들고 검증을 통과시킨 뒤 병합한다.
+- `main` CI가 모두 성공하고 두 `main`이 의도한 enhancement commit을 포함하는지 확인한다.
+- 실패 시 force push, reset 또는 기존 보존 브랜치 덮어쓰기를 하지 않는다. 일부 저장소만 승격된 경우 즉시 중단하고 현황을 보고한 뒤 보존 브랜치를 기준으로 비파괴적 복구 계획을 세운다.
 
 ## Android 2차 로드맵
 
@@ -36,9 +46,10 @@ backend와 web의 최신 `enhancement`를 릴리스 후보로 검증하고 `main
 
 ## 릴리스 승인 경계
 
-- `main` merge, tag 생성, 운영 DB migration, 8080 배포 명령을 실행하지 않는다.
-- 최종 보고서에 자동 검증 결과, 인수 테스트, 위험, 릴리스·롤백 계획을 제시한다.
-- 사용자에게 명시적으로 `main` 병합과 운영 배포 승인을 요청한다.
+- 이 프롬프트에 따라 Goal 10의 자동·인수 검증이 모두 성공하면 기존 `main` 보존 브랜치 생성과 고도화본의 `main` 승격까지 수행한다.
+- 릴리스 tag 생성, 운영 DB migration, 운영 8080 배포와 운영 서비스 재시작은 수행하지 않는다.
+- 최종 보고서에 자동 검증 결과, 인수 테스트, 보존 브랜치와 SHA, 새 `main` SHA, 위험, 운영 릴리스·롤백 계획을 제시한다.
+- 운영 배포는 `main` 승격과 분리하고 별도로 명시적인 승인을 요청한다.
 
 ## 완료 조건
 
@@ -49,4 +60,6 @@ backend와 web의 최신 `enhancement`를 릴리스 후보로 검증하고 `main
 - 릴리스 및 롤백 계획 작성
 - Android 2차 로드맵 작성
 - Goal 1~10 문서와 troubleshooting 인덱스 최종 정리
-- 사용자에게 `main` 병합 승인 요청
+- backend와 web의 이전 `main`을 버전 보존 브랜치로 원격 보존
+- 검증된 backend와 web `enhancement`를 `main`으로 승격하고 `main` CI 성공
+- 운영 8080·운영 DB 무변경 확인과 별도 운영 배포 승인 요청

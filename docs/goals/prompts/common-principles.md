@@ -16,14 +16,15 @@ Kotlin Android 앱 개발은 1차 고도화가 완료된 뒤 별도의 2차 Goal
 
 ## 브랜치와 실행 환경
 
-- `main`, 운영 8080, 운영 DB `yakmogo`는 변경하지 않는다.
+- Goal 9까지 `main`, 운영 8080, 운영 DB `yakmogo`는 변경하지 않는다.
 - 최신 `enhancement`에서 해당 Goal의 feature 브랜치를 만든다.
 - 단, Goal 1은 기존 `feature/quality-hardening`을 사용하며 새 feature 브랜치를 만들지 않는다.
 - 개발과 통합 검증은 8081과 `yakmogo_enhancement`에서만 수행한다.
 - backend와 web은 별도 Git 저장소임을 유지한다.
 - Goal과 직접 관련 없는 문제는 임의로 수정하지 않고 후속 Goal 또는 차단 이슈로 기록한다.
 - 검증된 feature만 `enhancement`에 `--no-ff`로 통합한다.
-- Goal 10의 최종 사용자 승인 전에는 `main` 병합과 운영 8080 배포를 실행하지 않는다.
+- Goal 9까지는 `main`을 변경하지 않는다. Goal 10에서는 전체 검증 성공 후 backend와 web의 기존 `main`을 같은 버전의 원격 보존 브랜치로 먼저 보존·검증하고, 고도화된 `enhancement`를 `main`으로 승격한다.
+- Goal 10의 `main` 승격은 운영 릴리스와 분리한다. 별도 사용자 승인 전에는 운영 8080 배포, 운영 DB migration, 운영 서비스 재시작과 release tag 생성을 실행하지 않는다.
 
 ## CI와 검증
 
