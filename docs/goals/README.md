@@ -39,7 +39,8 @@
 - [Goal 2: 인증·인가 강화](goal-02-auth-hardening.md)
 - [Goal 3: 런타임 설정과 비밀정보 분리](goal-03-runtime-config.md)
 - [Goal 4: Flyway 기반 DB 마이그레이션](goal-04-database-migration.md) — 완료
-- [Goal 5: 백엔드 API 테스트·검증·상태 전이](goal-05-backend-test-suite.md) — 병합 승인 대기
+- [Goal 5: 백엔드 API 테스트·검증·상태 전이](goal-05-backend-test-suite.md) — 완료
+- [Goal 6: React 약 관리 UI·UX](goal-06-medicine-ui.md) — 병합 승인 대기
 
 ## Goal 1~10 실행 프롬프트
 
