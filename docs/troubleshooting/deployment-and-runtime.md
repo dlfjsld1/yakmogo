@@ -199,11 +199,23 @@ java -DYAKMOGO_DB_PASSWORD=<redacted> \
 
 ### 해결
 
-Goal 1·2 범위에서는 운영 설정을 변경하지 않았다. 8081 서명 키는 권한 700인 스크립트에 임시로 보관했다.
+Goal 1·2에서는 현상을 기록만 했고, Goal 3에서 고도화 8081을 다음 구조로 전환했다.
+
+- 비민감 환경 차이: `application-enhancement.yml`
+- 비밀값: `/etc/yakmogo/yakmogo-enhancement.env`
+- 환경파일 권한: `root:root 600`, 상위 디렉터리 `root:root 700`
+- 실행 명령: `exec /usr/bin/java -jar ...`
+
+운영 8080은 범위상 변경하지 않았다.
 
 ### 검증
 
-현재도 기존 운영 start script의 민감정보 구조는 남아 있다. 따라서 이 사례는 완전 해결이 아니라 확인된 후속 작업이다.
+- 8081 MainPID 명령행은 `/usr/bin/java -jar ...`만 표시
+- 8081 환경파일은 일반 `pi` 사용자가 직접 읽거나 `stat`할 수 없음
+- 8081 profile `enhancement`, DB `yakmogo_enhancement`
+- 8080·8081 모두 HTTP 200
+
+고도화 환경의 문제는 해결됐지만 운영 8080에는 같은 구조가 남아 있다.
 
 ### 배운 점
 
@@ -211,7 +223,9 @@ Git에 비밀값을 넣지 않는 것만으로 충분하지 않다. 프로세스
 
 ### 재발 방지
 
-Goal 3에서 systemd `EnvironmentFile` 또는 credentials로 이동하고 파일 권한과 `ps` 비노출을 검증한다.
+- 저장소에는 실제 환경파일이 아니라 placeholder 예제만 둔다.
+- `ps` 검증은 전체 프로세스를 출력하지 않고 8081 MainPID에서 금지 키 존재 여부를 먼저 검사한다.
+- 운영 8080 전환과 이미 노출 가능성이 있던 자격증명 회전은 별도 유지보수로 수행한다.
 
 ## 사례 5: sudo 인증 캐시를 가정한 설치 스크립트 실패
 
@@ -257,6 +271,52 @@ DB 생성, unit 설치, daemon reload, service enable 각각에 명시적으로 
 
 Goal 8에서 권한 경계를 명시한 배포 전용 스크립트와 실패 단계별 재실행 안전성을 구현한다.
 
+## 사례 6: 보호된 EnvironmentFile의 권한 검증이 일반 사용자에서 실패
+
+### 상황
+
+Goal 3 배포 후 파일 mode를 확인하려고 `pi` 사용자로 `/etc/yakmogo/yakmogo-enhancement.env`에 `stat`을 실행했다.
+
+### 최초 접근
+
+내용을 읽지 않는 `stat`은 일반 사용자로도 가능할 것으로 예상했다.
+
+### 발생한 증상
+
+```text
+stat: cannot statx '/etc/yakmogo/yakmogo-enhancement.env': Permission denied
+```
+
+검증 스크립트가 `set -e`로 실행돼 이후 HTTP·DB 검사도 중단됐다.
+
+### 조사 과정
+
+상위 `/etc/yakmogo`를 `root:root 700`으로 설치했기 때문에 `pi`는 파일 경로를 탐색할 수 없었다. 반면 systemd manager는 root로 EnvironmentFile을 읽은 뒤 사용자 전환을 수행하므로 서비스는 정상 실행됐다.
+
+### 원인
+
+서비스 파일 접근 주체와 사후 검증 명령의 실행 주체를 동일하다고 가정했다.
+
+### 해결
+
+일반 사용자 구간에서는 Java 명령행·서비스·HTTP만 검사하고, 환경 디렉터리와 파일의 소유권·mode, 키 이름, DB 질의는 별도의 root 검증 구간으로 옮겼다. 값 자체는 출력하지 않았다.
+
+### 검증
+
+- `/etc/yakmogo`: `root:root 700`
+- 환경파일: `root:root 600`
+- `yakmogo-enhancement.service`: active
+- 8081: HTTP 200
+
+### 배운 점
+
+권한 거부는 항상 장애가 아니다. 기대한 보안 경계가 작동한 결과인지, 실제 서비스가 그 파일을 어느 권한 단계에서 읽는지 함께 확인해야 한다.
+
+### 재발 방지
+
+- 배포 검증을 일반 사용자 검사와 root 메타데이터 검사로 분리한다.
+- `cat`, `systemctl show Environment`, `/proc/<pid>/environ`처럼 값을 노출하는 검사는 사용하지 않는다.
+
 ## 확인된 배포 근거
 
 - Goal 1 격리 커밋: `1187f01`
@@ -264,3 +324,6 @@ Goal 8에서 권한 경계를 명시한 배포 전용 스크립트와 실패 단
 - Goal 1 Web CI: <https://github.com/dlfjsld1/yakmogo-web/actions/runs/29301529443>
 - Goal 2 고도화 JAR 백업: `yakmogo-0.0.7-SNAPSHOT.jar.backup-20260714-115720`
 - Goal 2 통합 검증: 8081 200, 허용 userId 200, 범위 밖 403, 임의 토큰 401
+- Goal 3 롤백 JAR·unit: `/home/pi/myprojects/yakmogo-enhancement/backup-goal3-20260714-122559`
+- Goal 3 보호된 구형 스크립트: `/etc/yakmogo/backups/goal3-20260714-122559/start.sh`
+- Goal 3 통합 검증: 8080·8081 200, 8081 무토큰 401, DB `yakmogo_enhancement`, `ps` 비밀 인자 없음
