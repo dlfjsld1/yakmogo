@@ -144,14 +144,17 @@ SCHEDULING_ENABLED=false
 - `.gitattributes`: Linux 배포 파일 LF 강제
 - `.github/workflows/release-candidate.yml`: image artifact 생성과 container staging·배포
 
-## 남은 승인 지점
+## 이후 방향 변경
 
-실기 검증 뒤 다음 두 변경 전에 보고하고 멈춘다.
+8081 cutover 검증 뒤 설치 복잡성을 재검토해 자동 CD를 기본 경로로 활성화하지 않기로 했다.
 
-- `yakmogo-runner`에 `/usr/local/sbin/yakmogo-enhancement-container-deploy` 한 명령의 passwordless sudo 허용
-- 검증된 feature를 `enhancement`에 병합해 container 자동 배포 workflow 활성화
+- 새 runner passwordless sudoers는 설치하지 않는다.
+- 현재 feature를 자동 배포 형태 그대로 `enhancement`에 병합하지 않는다.
+- 같은 `feature/docker-enhancement`에서 [단일 명령 Docker 설치와 수동 업데이트 Goal](prompts/goal-docker-portable-install.md)을 먼저 수행한다.
+- 앱과 Yakmogo 전용 MariaDB를 하나의 Compose project의 별도 container로 구성한다.
+- GitHub-hosted CI는 test·build·versioned image artifact까지만 수행하고 Pi 업데이트는 checksum·backup·health·rollback을 포함한 수동 한 명령으로 단순화한다.
 
-기존 JAR·shadow sudoers는 포트 충돌을 막기 위해 제거했으며 현재 runner의 Yakmogo root 명령은 없다.
+기존 JAR·shadow sudoers는 포트 충돌을 막기 위해 제거했으며 현재 runner의 Yakmogo root 명령은 없다. 현재 Docker 8081은 그대로 유지하고 후속 Goal의 DB 이동 승인 전에는 host `yakmogo_enhancement` 연결을 변경하지 않는다.
 
 ## 실제 shadow 검증 결과
 
