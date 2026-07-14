@@ -38,3 +38,7 @@
 - [Goal 1: 품질 기반과 고도화 환경 격리](goal-01-quality-hardening.md)
 - [Goal 2: 인증·인가 강화](goal-02-auth-hardening.md)
 - [Goal 3: 런타임 설정과 비밀정보 분리](goal-03-runtime-config.md)
+
+## Goal 1~10 실행 프롬프트
+
+- [공통 원칙과 Goal별 실행 프롬프트](prompts/README.md)
