@@ -65,9 +65,11 @@ jobs:
         run: |
           chmod +x scripts/ci/*.sh deploy/cicd/*.sh \
             deploy/cicd/yakmogo-enhancement-deploy \
+            deploy/cicd/yakmogo-enhancement-container-deploy \
             deploy/cicd/yakmogo-enhancement-container-shadow
           bash -n scripts/ci/*.sh deploy/cicd/*.sh \
             deploy/cicd/yakmogo-enhancement-deploy \
+            deploy/cicd/yakmogo-enhancement-container-deploy \
             deploy/cicd/yakmogo-enhancement-container-shadow
           scripts/ci/test-integrated-jar-verifier.sh
           scripts/ci/test-container-contract.sh
@@ -77,3 +79,6 @@ jobs:
           grep -Fxq \
             'yakmogo-runner ALL=(root) NOPASSWD: /usr/local/sbin/yakmogo-enhancement-container-shadow' \
             deploy/cicd/yakmogo-enhancement-container-shadow.sudoers
+          grep -Fxq \
+            'yakmogo-runner ALL=(root) NOPASSWD: /usr/local/sbin/yakmogo-enhancement-container-deploy' \
+            deploy/cicd/yakmogo-enhancement-container-deploy.sudoers

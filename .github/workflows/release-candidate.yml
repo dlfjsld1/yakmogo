@@ -107,23 +107,25 @@ jobs:
 
       - name: Verify downloaded checksum
         working-directory: release-artifact
-        run: sha256sum --check yakmogo-enhancement-${{ github.sha }}.jar.sha256
+        run: |
+          sha256sum --check yakmogo-enhancement-${{ github.sha }}.jar.sha256
+          sha256sum --check yakmogo-enhancement-${{ github.sha }}-linux-arm64.tar.sha256
 
       - name: Stage release request
         shell: bash
         run: |
           set -euo pipefail
-          release_dir="/var/lib/yakmogo-deploy/incoming/${GITHUB_SHA}"
+          release_dir="/var/lib/yakmogo-container-deploy/incoming/${GITHUB_SHA}"
           install -d -m 0750 "$release_dir"
           install -m 0640 \
-            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}.jar" \
-            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}.jar.sha256" \
+            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}-linux-arm64.tar" \
+            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}-linux-arm64.tar.sha256" \
             "release-artifact/release-manifest.txt" \
             "$release_dir/"
-          request_tmp=$(mktemp /var/lib/yakmogo-deploy/incoming/request.XXXXXX)
+          request_tmp=$(mktemp /var/lib/yakmogo-container-deploy/incoming/request.XXXXXX)
           printf 'BACKEND_SHA=%s\nMODE=deploy\n' "$GITHUB_SHA" > "$request_tmp"
           chmod 0640 "$request_tmp"
-          mv -f "$request_tmp" /var/lib/yakmogo-deploy/incoming/request
+          mv -f "$request_tmp" /var/lib/yakmogo-container-deploy/incoming/request
 
-      - name: Deploy only enhancement 8081
-        run: sudo /usr/local/sbin/yakmogo-enhancement-deploy
+      - name: Deploy enhancement container only on 8081
+        run: sudo /usr/local/sbin/yakmogo-enhancement-container-deploy
