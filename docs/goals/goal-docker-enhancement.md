@@ -201,4 +201,5 @@ DB와 프로세스:
 
 - 현재 Flyway는 MariaDB 11.8이 공식 확인 범위 11.2보다 새 버전이라는 경고를 출력한다. migration validation은 성공했지만 Goal 9 이전 후속 검토 대상으로 남긴다.
 - image tar는 첫 build 기준 159 MiB이므로 보관·삭제 정책을 Goal 9에서 정해야 한다.
+- Goal 9에서 Uptime Kuma monitor를 추가할 때 이름뿐 아니라 감시 대상, 정상 조건, 장애 영향, 확인 명령과 복구 문서를 설명 또는 비고에 기록한다. Raspberry Pi 전체 복구 기준은 [Pi Docker 운영 복구 런북](../runbooks/pi-docker-recovery.md)에 유지한다.
 - host network는 MariaDB loopback 연결을 유지하는 대신 network namespace 격리를 줄인다.

@@ -13,6 +13,7 @@
 - [CI/CD 트러블슈팅](docs/troubleshooting/ci-cd.md)
 - [알림 전달과 재시도 트러블슈팅](docs/troubleshooting/notification-reliability.md)
 - [8081 CI/CD 배포 런북](docs/runbooks/enhancement-cicd.md)
+- [Raspberry Pi Docker 운영 복구 런북](docs/runbooks/pi-docker-recovery.md)
 
 ## 📌 텔레그램 봇 설정 방법
 
@@ -25,7 +26,7 @@
    
 ## 📌 인프라 제약 사항 및 아키텍처 결정
 
-* **컨테이너화 생략 (No Docker):** 라즈베리파이 Buster OS의 호환성 문제로 Docker 대신 Native 환경에서 직접 실행하도록 구성했습니다.
+* **단계적 Docker 전환:** 운영 8080과 고도화 8081은 현재 systemd로 유지하며, ARM64 Docker image를 18081 shadow 환경에서 검증했습니다. 8081 cutover 승인 전에는 systemd를 중지하지 않습니다.
 * **로컬망 중심 설계:** 관리자 페이지는 홈 네트워크(로컬) 내부에서 수행하며, 알림은 텔레그램 API(Outbound)를 통해 외부로 전송됩니다.
 * **보안 주의:** 민감 정보(DB 비번, 토큰 등)는 Git에 저장하거나 Java `-D` 인자로 전달하지 않습니다. systemd가 읽는 권한 `600`의 `EnvironmentFile`로 주입합니다.
 

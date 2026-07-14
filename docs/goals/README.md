@@ -45,6 +45,10 @@
 - [Goal 8: CI/CD와 8081 자동 배포·롤백](goal-08-ci-cd.md) — 완료
 - [Docker 전환 준비: 8081 shadow container](goal-docker-enhancement.md) — 진행 중
 
+## 운영 런북
+
+- [Pi Docker 운영 복구 런북](../runbooks/pi-docker-recovery.md) — 설치 순서, 서비스별 역할, Uptime Kuma 설명 규칙
+
 ## Goal 1~10 실행 프롬프트
 
 - [공통 원칙과 Goal별 실행 프롬프트](prompts/README.md)
