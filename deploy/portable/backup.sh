@@ -6,6 +6,8 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 validate_environment
 require_command gzip
 wait_for_database || die "MariaDB is not ready"
+root_password=$(env_value YAKMOGO_DB_ROOT_PASSWORD)
+database=$(env_value YAKMOGO_DB_NAME)
 
 backup_dir=${1:-$PORTABLE_DIR/backups}
 mkdir -p "$backup_dir"
@@ -18,8 +20,8 @@ umask 077
 cleanup() { rm -f "$tmp_file"; }
 trap cleanup EXIT
 
-compose exec -T yakmogo-mariadb sh -c \
-  'MARIADB_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb-dump --single-transaction --routines --triggers -uroot "$MARIADB_DATABASE"' \
+compose exec -T -e "MARIADB_PWD=$root_password" yakmogo-mariadb \
+  mariadb-dump --single-transaction --routines --triggers -uroot "$database" \
   | gzip -9 > "$tmp_file"
 gzip -t "$tmp_file"
 mv -f "$tmp_file" "$backup_file"
