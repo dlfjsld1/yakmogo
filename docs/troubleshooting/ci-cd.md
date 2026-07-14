@@ -360,3 +360,26 @@ Raspberry Pi에는 Java 애플리케이션 실행 환경과 `unzip`은 있지만
 ### 배운 점
 
 CI 머신에 있는 개발 도구가 배포 서버에도 있다고 가정하면 안 된다. 서버 의존성을 먼저 조사하고 이미 있는 표준 도구로 같은 안전 계약을 만족시킬 수 있는지 확인한다.
+
+## 사례 10: `pipefail`이 정상 JAR 항목 검사를 실패로 판단함
+
+### 증상
+
+최초 자동 배포는 성공했지만 같은 artifact로 rollback probe를 시작할 때 실제로 존재하는 JavaScript bundle을 찾지 못했다는 오류로 후보 교체 전에 종료됐다.
+
+### 원인
+
+root helper가 `set -o pipefail` 상태에서 `unzip -Z1 candidate.jar | grep -q expected`를 사용했다. `grep -q`가 일치 항목을 찾고 입력을 일찍 닫으면 `unzip`이 SIGPIPE로 종료될 수 있다. 이때 `grep`은 성공했어도 전체 pipeline은 실패가 된다. 출력 buffering과 항목 위치에 따라 재현 여부가 달라져 같은 artifact에서도 불안정할 수 있다.
+
+### 해결
+
+JAR 항목 목록을 root 전용 임시 파일에 끝까지 저장한 뒤 별도 `grep -Fxq`로 검사한다.
+
+```text
+unzip -Z1 candidate.jar > candidate-entries.txt
+grep -Fxq expected-entry candidate-entries.txt
+```
+
+### 안전 영향
+
+오류는 candidate 검증 중 발생해 JAR 교체와 서비스 재시작 전 종료됐다. 8080과 8081 실행 파일·PID에는 변화가 없었다.
