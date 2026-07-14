@@ -1,6 +1,6 @@
 # 8081 CI/CD 배포 런북
 
-> 현재 상태: 사용자 승인 완료. 배포 코드와 로컬 release candidate 검증 완료, Raspberry Pi 활성화 및 실제 rollback 검증 진행 중이다.
+> 현재 상태: 활성화 및 검증 완료. `enhancement` push는 검증된 artifact를 Pi의 8081에 자동 배포하며, 실제 실패 후 rollback probe까지 통과했다.
 
 ## 목적과 안전 경계
 
@@ -58,6 +58,17 @@ build/release/release-manifest.txt
 5. `/var/lib/yakmogo-deploy/incoming`을 runner 쓰기, root 읽기 구조로 생성
 6. `/usr/local/sbin/yakmogo-enhancement-deploy`를 root:root 755로 설치
 7. 정확한 helper 경로만 허용하는 sudoers 파일을 root:root 440으로 설치
+
+현재 설치값:
+
+```text
+runner user: yakmogo-runner
+runner home: /var/lib/yakmogo-runner
+runner name: yakmogo-pi-enhancement
+runner service: actions.runner.dlfjsld1-yakmogo.yakmogo-pi-enhancement.service
+runner labels: self-hosted, Linux, ARM64, yakmogo-enhancement
+deploy environment: enhancement branch only
+```
 
 일반 shell 전체와 임의 `systemctl`, 임의 파일 경로를 sudoers에 허용하지 않는다. runner 등록 token은 설치 순간에만 사용하고 파일·workflow secret·문서에 저장하지 않는다.
 
@@ -190,6 +201,8 @@ journalctl -u yakmogo-enhancement --since=-10min --no-pager
 ```
 
 전체 process environment, systemd Environment, 환경파일 내용을 출력하지 않는다.
+
+배포 결과는 가장 최근 backup의 `deployment-result.txt`와 `release-manifest.txt`에서 확인한다. 이 두 파일에는 token과 환경변수 값이 없으며 root만 읽을 수 있다.
 
 ## DB migration 주의
 

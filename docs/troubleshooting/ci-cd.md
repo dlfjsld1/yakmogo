@@ -360,3 +360,56 @@ Raspberry Pi에는 Java 애플리케이션 실행 환경과 `unzip`은 있지만
 ### 배운 점
 
 CI 머신에 있는 개발 도구가 배포 서버에도 있다고 가정하면 안 된다. 서버 의존성을 먼저 조사하고 이미 있는 표준 도구로 같은 안전 계약을 만족시킬 수 있는지 확인한다.
+
+## 사례 10: `pipefail`이 정상 JAR 항목 검사를 실패로 판단함
+
+### 증상
+
+최초 자동 배포는 성공했지만 같은 artifact로 rollback probe를 시작할 때 실제로 존재하는 JavaScript bundle을 찾지 못했다는 오류로 후보 교체 전에 종료됐다.
+
+### 원인
+
+root helper가 `set -o pipefail` 상태에서 `unzip -Z1 candidate.jar | grep -q expected`를 사용했다. `grep -q`가 일치 항목을 찾고 입력을 일찍 닫으면 `unzip`이 SIGPIPE로 종료될 수 있다. 이때 `grep`은 성공했어도 전체 pipeline은 실패가 된다. 출력 buffering과 항목 위치에 따라 재현 여부가 달라져 같은 artifact에서도 불안정할 수 있다.
+
+### 해결
+
+JAR 항목 목록을 root 전용 임시 파일에 끝까지 저장한 뒤 별도 `grep -Fxq`로 검사한다.
+
+```text
+unzip -Z1 candidate.jar > candidate-entries.txt
+grep -Fxq expected-entry candidate-entries.txt
+```
+
+### 안전 영향
+
+오류는 candidate 검증 중 발생해 JAR 교체와 서비스 재시작 전 종료됐다. 8080과 8081 실행 파일·PID에는 변화가 없었다.
+
+## 사례 11: Windows 작업 트리의 CRLF shell script를 Pi에 직접 전송함
+
+### 증상
+
+수정한 root helper를 Windows 작업 트리에서 SCP로 재설치한 뒤 rollback probe가 다음 오류로 후보 검증 전에 종료됐다.
+
+```text
+env: ‘bash\r’: No such file or directory
+```
+
+### 원인
+
+저장소 blob과 GitHub Actions checkout은 LF였지만 Windows의 `core.autocrlf=true` 작업 트리 파일은 CRLF였다. 이 파일을 직접 SCP하면 Linux shebang의 interpreter가 `bash\r`로 해석된다.
+
+### 해결
+
+재전송 전에 배포 shell과 sudoers의 줄바꿈을 LF로 정규화하고 다음 세 검사를 모두 통과한 뒤 설치했다.
+
+```text
+로컬 CRLF 개수 0
+Pi bash -n 성공
+Pi 첫 줄 bytes: 23 21 ... 62 61 73 68 0a
+```
+
+GitHub Actions artifact 배포는 Linux runner에서 만들어지므로 이 수동 SCP 문제의 영향을 받지 않는다. 수동 복구나 helper 재설치 때에는 Windows 작업 트리 파일을 그대로 전송하지 않는다.
+
+### 안전 영향
+
+shebang 해석 단계에서 중단되어 JAR 교체, 8081 재시작, 8080 변경은 발생하지 않았다.

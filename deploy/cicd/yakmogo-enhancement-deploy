@@ -127,7 +127,8 @@ grep -q 'port: 8081' "$work_dir/application-enhancement.yml" || die "candidate p
 grep -q 'yakmogo_enhancement' "$work_dir/application-enhancement.yml" || die "candidate DB is not enhancement"
 [[ $(grep -c 'enabled: false' "$work_dir/application-enhancement.yml") -ge 2 ]] \
   || die "candidate bot or scheduler safety setting is missing"
-unzip -Z1 "$work_dir/candidate.jar" | grep -Fxq "BOOT-INF/classes/static${expected_bundle}" \
+unzip -Z1 "$work_dir/candidate.jar" > "$work_dir/candidate-entries.txt"
+grep -Fxq "BOOT-INF/classes/static${expected_bundle}" "$work_dir/candidate-entries.txt" \
   || die "expected JavaScript bundle is missing from candidate"
 
 old_index=$work_dir/old-index.html
