@@ -60,6 +60,9 @@ jobs:
           cache: npm
           cache-dependency-path: yakmogo-web/package-lock.json
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Verify web
         working-directory: yakmogo-web
         run: |
@@ -73,6 +76,7 @@ jobs:
           chmod +x scripts/ci/*.sh gradlew
           WEB_SHA=$(git -C yakmogo-web rev-parse HEAD) \
             scripts/ci/build-release-candidate.sh yakmogo-web/dist
+          scripts/ci/build-container-candidate.sh build/release
 
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
@@ -81,6 +85,7 @@ jobs:
           path: |
             build/release/*.jar
             build/release/*.sha256
+            build/release/*.tar
             build/release/release-manifest.txt
           if-no-files-found: error
           retention-days: 7

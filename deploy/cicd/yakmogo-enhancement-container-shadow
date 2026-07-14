@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "must run as root" >&2; exit 1; }
+[[ $# -eq 0 ]] || { echo "arguments are not allowed" >&2; exit 2; }
+
+readonly SERVICE=yakmogo-enhancement.service
+readonly PROD_SERVICE=yakmogo.service
+readonly APP_JAR=/home/pi/myprojects/yakmogo-enhancement/yakmogo-0.0.7-SNAPSHOT.jar
+readonly PROD_JAR=/home/pi/myprojects/yakmogo/yakmogo-0.0.7-SNAPSHOT.jar
+readonly INCOMING_ROOT=/var/lib/yakmogo-container-deploy/incoming
+readonly WORK_ROOT=/var/lib/yakmogo-container-deploy/work
+readonly STATE_ROOT=/var/lib/yakmogo-container-deploy/state
+readonly REQUEST=$INCOMING_ROOT/request
+readonly COMPOSE_DIR=/home/pi/docker/yakmogo-enhancement
+readonly COMPOSE_FILE=$COMPOSE_DIR/compose.yml
+readonly RELEASE_ENV=$COMPOSE_DIR/.release.env
+readonly SHADOW_PORT=18081
+
+die() { echo "container shadow error: $*" >&2; exit 1; }
+
+manifest_value() {
+  local key=$1 file=$2 count value
+  count=$(grep -cE "^${key}=" "$file" || true)
+  [[ $count -eq 1 ]] || die "manifest key must appear once: $key"
+  value=$(sed -n "s/^${key}=//p" "$file")
+  printf '%s' "$value"
+}
+
+http_code() {
+  curl --max-time 3 --silent --output /dev/null --write-out '%{http_code}' "$1" 2>/dev/null || true
+}
+
+shadow_ready() {
+  local bundle=$1 i
+  for ((i = 0; i < 60; i++)); do
+    if [[ $(docker inspect --format '{{.State.Running}}' yakmogo-enhancement 2>/dev/null || true) == true ]] \
+      && [[ $(http_code "http://127.0.0.1:${SHADOW_PORT}/") == 200 ]] \
+      && [[ $(http_code "http://127.0.0.1:${SHADOW_PORT}${bundle}") == 200 ]] \
+      && [[ $(http_code "http://127.0.0.1:${SHADOW_PORT}/api/v1/users") == 401 ]]; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+compose() {
+  docker compose --project-directory "$COMPOSE_DIR" --env-file "$RELEASE_ENV" \
+    --file "$COMPOSE_FILE" "$@"
+}
+
+production_unchanged() {
+  local prod_pid=$1 prod_sha=$2 app_pid=$3 app_sha=$4 other_containers=$5
+  [[ $(systemctl is-active "$PROD_SERVICE" 2>/dev/null || true) == active ]] \
+    && [[ $(systemctl show -p MainPID --value "$PROD_SERVICE") == "$prod_pid" ]] \
+    && [[ $(sha256sum "$PROD_JAR" | awk '{print $1}') == "$prod_sha" ]] \
+    && [[ $(http_code http://127.0.0.1:8080/) == 200 ]] \
+    && [[ $(systemctl is-active "$SERVICE" 2>/dev/null || true) == active ]] \
+    && [[ $(systemctl show -p MainPID --value "$SERVICE") == "$app_pid" ]] \
+    && [[ $(sha256sum "$APP_JAR" | awk '{print $1}') == "$app_sha" ]] \
+    && [[ $(http_code http://127.0.0.1:8081/) == 200 ]] \
+    && [[ $(docker ps --format '{{.Names}}={{.ID}}' | grep -v '^yakmogo-enhancement=' | sort) == "$other_containers" ]]
+}
+
+restore_previous_shadow() {
+  local had_previous=$1 previous_bundle=$2
+  compose down --remove-orphans >/dev/null 2>&1 || true
+  if [[ $had_previous == true ]]; then
+    install -o root -g root -m 0600 "$work_dir/previous-release.env" "$RELEASE_ENV"
+    compose up -d --force-recreate --remove-orphans >/dev/null
+    shadow_ready "$previous_bundle" || die "previous shadow restoration failed"
+  else
+    rm -f "$RELEASE_ENV"
+  fi
+}
+
+[[ -f $REQUEST && ! -L $REQUEST ]] || die "shadow request is missing or unsafe"
+install -d -o root -g root -m 0700 "$WORK_ROOT" "$STATE_ROOT"
+work_dir=$(mktemp -d "$WORK_ROOT/shadow.XXXXXX")
+cleanup() {
+  [[ $work_dir == "$WORK_ROOT"/shadow.* ]] || return 1
+  rm -rf -- "$work_dir"
+}
+trap cleanup EXIT
+install -o root -g root -m 0600 "$REQUEST" "$work_dir/request"
+rm -f "$REQUEST"
+
+backend_sha=$(manifest_value BACKEND_SHA "$work_dir/request")
+mode=$(manifest_value MODE "$work_dir/request")
+[[ $backend_sha =~ ^[0-9a-f]{40}$ ]] || die "invalid backend SHA"
+[[ $mode == shadow ]] || die "only shadow mode is allowed"
+
+release_dir=$INCOMING_ROOT/$backend_sha
+[[ -d $release_dir && ! -L $release_dir ]] || die "release directory is missing or unsafe"
+manifest=$release_dir/release-manifest.txt
+[[ -f $manifest && ! -L $manifest ]] || die "release manifest is missing or unsafe"
+install -o root -g root -m 0600 "$manifest" "$work_dir/release-manifest.txt"
+
+manifest_backend_sha=$(manifest_value BACKEND_SHA "$work_dir/release-manifest.txt")
+web_sha=$(manifest_value WEB_SHA "$work_dir/release-manifest.txt")
+jar_sha=$(manifest_value JAR_SHA256 "$work_dir/release-manifest.txt")
+expected_bundle=$(manifest_value JS_BUNDLE "$work_dir/release-manifest.txt")
+image_ref=$(manifest_value IMAGE_REF "$work_dir/release-manifest.txt")
+image_arch=$(manifest_value IMAGE_ARCH "$work_dir/release-manifest.txt")
+image_tar_name=$(manifest_value IMAGE_TAR "$work_dir/release-manifest.txt")
+image_tar_sha=$(manifest_value IMAGE_TAR_SHA256 "$work_dir/release-manifest.txt")
+
+[[ $manifest_backend_sha == "$backend_sha" ]] || die "request and manifest SHA differ"
+[[ $web_sha =~ ^[0-9a-f]{40}$ ]] || die "invalid web SHA"
+[[ $jar_sha =~ ^[0-9a-f]{64}$ ]] || die "invalid JAR checksum"
+[[ $expected_bundle =~ ^/assets/[A-Za-z0-9_-]+\.js$ ]] || die "invalid bundle path"
+[[ $image_ref == "yakmogo-enhancement:${backend_sha}" ]] || die "invalid image reference"
+[[ $image_arch == arm64 ]] || die "invalid image architecture"
+[[ $image_tar_name == "yakmogo-enhancement-${backend_sha}-linux-arm64.tar" ]] \
+  || die "invalid image tar name"
+[[ $image_tar_sha =~ ^[0-9a-f]{64}$ ]] || die "invalid image tar checksum"
+
+image_tar=$release_dir/$image_tar_name
+checksum_file=$release_dir/$image_tar_name.sha256
+[[ -f $image_tar && ! -L $image_tar ]] || die "image tar is missing or unsafe"
+[[ -f $checksum_file && ! -L $checksum_file ]] || die "image checksum is missing or unsafe"
+install -o root -g root -m 0600 "$image_tar" "$work_dir/image.tar"
+install -o root -g root -m 0600 "$checksum_file" "$work_dir/image.tar.sha256"
+read -r checksum_value checksum_name checksum_extra < "$work_dir/image.tar.sha256"
+checksum_name=${checksum_name#\*}
+[[ -z ${checksum_extra:-} && $checksum_value == "$image_tar_sha" && $checksum_name == "$image_tar_name" ]] \
+  || die "image checksum file mismatch"
+[[ $(sha256sum "$work_dir/image.tar" | awk '{print $1}') == "$image_tar_sha" ]] \
+  || die "image tar checksum mismatch"
+
+prod_pid=$(systemctl show -p MainPID --value "$PROD_SERVICE")
+prod_sha=$(sha256sum "$PROD_JAR" | awk '{print $1}')
+app_pid=$(systemctl show -p MainPID --value "$SERVICE")
+app_sha=$(sha256sum "$APP_JAR" | awk '{print $1}')
+other_containers=$(docker ps --format '{{.Names}}={{.ID}}' | grep -v '^yakmogo-enhancement=' | sort)
+production_unchanged "$prod_pid" "$prod_sha" "$app_pid" "$app_sha" "$other_containers" \
+  || die "host baseline is not healthy"
+
+docker load --input "$work_dir/image.tar" > "$work_dir/docker-load.txt"
+[[ $(docker image inspect --format '{{.Architecture}}' "$image_ref") == arm64 ]] \
+  || die "loaded image architecture is not arm64"
+[[ $(docker image inspect --format '{{.Config.User}}' "$image_ref") == 10001:10001 ]] \
+  || die "loaded image user is not restricted"
+[[ $(docker image inspect --format '{{index .Config.Labels "com.yakmogo.backend-sha"}}' "$image_ref") == "$backend_sha" ]] \
+  || die "loaded image backend label mismatch"
+[[ $(docker image inspect --format '{{index .Config.Labels "com.yakmogo.web-sha"}}' "$image_ref") == "$web_sha" ]] \
+  || die "loaded image web label mismatch"
+[[ $(docker image inspect --format '{{index .Config.Labels "com.yakmogo.jar-sha256"}}' "$image_ref") == "$jar_sha" ]] \
+  || die "loaded image JAR label mismatch"
+
+had_previous=false
+previous_bundle=
+if [[ -f $RELEASE_ENV && ! -L $RELEASE_ENV ]]; then
+  install -o root -g root -m 0600 "$RELEASE_ENV" "$work_dir/previous-release.env"
+  previous_bundle=$(manifest_value YAKMOGO_EXPECTED_BUNDLE "$work_dir/previous-release.env")
+  had_previous=true
+fi
+
+cat > "$work_dir/release.env" <<EOF
+YAKMOGO_IMAGE=$image_ref
+YAKMOGO_PORT=$SHADOW_PORT
+YAKMOGO_FRONTEND_URL=http://192.168.50.192:$SHADOW_PORT
+YAKMOGO_EXPECTED_BUNDLE=$expected_bundle
+EOF
+install -o root -g root -m 0600 "$work_dir/release.env" "$RELEASE_ENV"
+
+if ! compose config --quiet \
+  || ! compose up -d --force-recreate --remove-orphans \
+  || ! shadow_ready "$expected_bundle" \
+  || [[ $(docker inspect --format '{{.HostConfig.NetworkMode}}' yakmogo-enhancement) != host ]] \
+  || [[ $(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' yakmogo-enhancement) != true ]] \
+  || ! production_unchanged "$prod_pid" "$prod_sha" "$app_pid" "$app_sha" "$other_containers"; then
+  restore_previous_shadow "$had_previous" "$previous_bundle"
+  die "shadow deployment failed and previous state was restored"
+fi
+
+cat > "$work_dir/deployment-result.txt" <<EOF
+STATE=SHADOW_READY
+BACKEND_SHA=$backend_sha
+WEB_SHA=$web_sha
+IMAGE_REF=$image_ref
+IMAGE_TAR_SHA256=$image_tar_sha
+PORT=$SHADOW_PORT
+EOF
+install -o root -g root -m 0600 "$work_dir/deployment-result.txt" \
+  "$STATE_ROOT/deployment-result.txt"
+
+echo "CONTAINER_RESULT=SHADOW_READY"
+echo "BACKEND_SHA=$backend_sha"
+echo "IMAGE_REF=$image_ref"
+echo "PORT=$SHADOW_PORT"
