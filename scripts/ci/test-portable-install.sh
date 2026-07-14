@@ -17,7 +17,8 @@ sed -i \
   -e 's/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=ci-admin-password/' \
   -e 's/^AUTH_TOKEN_SECRET=.*/AUTH_TOKEN_SECRET=ci-auth-token-secret-at-least-32-characters/' \
   .env
-chmod 600 .env ./*.sh
+chmod 600 .env
+chmod +x ./*.sh
 
 cleanup() {
   docker compose --project-directory "$work_dir" --env-file .env -f compose.yml \
