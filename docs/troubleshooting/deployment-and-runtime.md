@@ -327,3 +327,4 @@ stat: cannot statx '/etc/yakmogo/yakmogo-enhancement.env': Permission denied
 - Goal 3 롤백 JAR·unit: `/home/pi/myprojects/yakmogo-enhancement/backup-goal3-20260714-122559`
 - Goal 3 보호된 구형 스크립트: `/etc/yakmogo/backups/goal3-20260714-122559/start.sh`
 - Goal 3 통합 검증: 8080·8081 200, 8081 무토큰 401, DB `yakmogo_enhancement`, `ps` 비밀 인자 없음
+- Goal 3 Backend CI: <https://github.com/dlfjsld1/yakmogo/actions/runs/29303759928>
