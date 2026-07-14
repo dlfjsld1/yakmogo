@@ -114,3 +114,47 @@ CI의 MariaDB 11.8 service에서 V1 적용 후 대표 사용자·약·복용 행
 3. 쓰기 API는 응답만 보지 말고 transaction flush 뒤 DB 상태를 확인한다.
 4. 상태 전이 중복이면 repository 조회에 lock이 적용됐는지 확인한다.
 5. H2에서만 재현되지 않으면 CI MariaDB 통합 테스트를 실행한다.
+
+## 사례 6: sudo stdin 인코딩과 `/tmp` 보호 정책
+
+### 상황
+
+8081 비파괴 인수 테스트에서 root 전용 환경 파일의 관리자 비밀번호를 내용 출력 없이 임시 curl header로 만들려고 했다.
+
+### 첫 증상: sudo 비밀번호 거부
+
+PowerShell 문자열을 pipeline으로 SSH stdin에 넘기자 sudo는 같은 비밀번호를 틀렸다고 판단했다. 원격에서 `printf`로 동일 값을 전달한 무변경 `sudo -v` 검사는 성공했다.
+
+### 첫 원인과 해결
+
+문자열 값이 아니라 Windows PowerShell에서 native process stdin으로 전달되는 인코딩·줄바꿈 경계가 문제였다. 원격 shell의 `printf`가 정확한 바이트와 LF를 만들게 했고, 스크립트는 한 줄을 읽어 `sudo -S -v`에만 사용한 뒤 변수를 즉시 unset했다.
+
+### 두 번째 증상: curl exit 23
+
+pi 사용자가 `mktemp`로 `/tmp` 파일을 만든 뒤 root shell 또는 root curl이 그 파일을 열려고 하자 `Permission denied`와 curl exit 23이 발생했다. 일반적인 root 권한 예상과 달랐다.
+
+### 두 번째 원인
+
+sticky bit가 있는 `/tmp`와 Linux `fs.protected_regular` 보호는 권한 상승 프로세스가 다른 사용자가 먼저 만든 파일을 덮어쓰는 공격을 막는다. mode만 봐서는 root가 쓸 수 있어 보여도 안전 정책이 거부할 수 있다.
+
+### 해결
+
+- secret header와 response body 경로를 `/run/yakmogo-goal5-*`로 이동
+- root가 파일을 처음 생성
+- header는 600, 민감정보가 없는 response body는 644
+- command line에는 실제 header 값을 넣지 않고 curl의 `--header @파일` 사용
+- 성공·실패 trap 모두 `/run` 파일 삭제
+
+### rollback 검증
+
+새 JAR 기동 뒤 발생한 두 실패에서는 자동 rollback이 이전 JAR을 복원했다. 매번 다음을 확인한 뒤 재시도했다.
+
+- 8081과 8080 active·HTTP 200
+- 이전 JAR SHA-256 복원
+- 고도화 Flyway history 1건 유지
+- 고도화·운영 row count 불변
+- 임시 JAR과 header/body 제거
+
+### 배운 점
+
+root 권한을 얻었다고 `/tmp` 파일 소유권 경계를 무시할 수 있다고 가정하면 안 된다. secret을 command argument로 우회하지 말고, 처음부터 올바른 소유자가 안전한 디렉터리에 파일을 생성해야 한다. 자동 rollback은 애플리케이션 실패뿐 아니라 검증 도구 실패에도 작동해야 한다.

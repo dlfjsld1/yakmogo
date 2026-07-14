@@ -24,7 +24,7 @@
 - [Goal 2: 인증·인가 강화](../goals/goal-02-auth-hardening.md)
 - [Goal 3: 런타임 설정과 비밀정보 분리](../goals/goal-03-runtime-config.md)
 - [Goal 4: Flyway 기반 DB 마이그레이션](../goals/goal-04-database-migration.md) — 완료
-- [Goal 5: 백엔드 API 테스트·검증·상태 전이](../goals/goal-05-backend-test-suite.md) — 진행 중
+- [Goal 5: 백엔드 API 테스트·검증·상태 전이](../goals/goal-05-backend-test-suite.md) — 병합 승인 대기
 
 ## 빠르게 찾는 법
 
