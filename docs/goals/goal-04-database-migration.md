@@ -2,7 +2,7 @@
 
 ## 현재 상태
 
-**승인 후 구현·검증 진행 중.** 2026-07-14 승인에 따라 고도화 DB 백업과 격리 복원 리허설, Flyway dependency·V1·설정·테스트 구현, 실제 MariaDB 빈 DB 검증까지 완료했다. `yakmogo_enhancement`의 8081 baseline 적용은 feature CI 성공 후 수행한다. 운영 `yakmogo`, 운영 8080, `main`은 변경하지 않았다.
+**완료.** 2026-07-14 승인에 따라 고도화 DB 백업과 격리 복원 리허설, Flyway dependency·V1·설정·테스트 구현, 실제 MariaDB 빈 DB 검증, `yakmogo_enhancement`의 version 1 baseline과 8081 이중 재시작 검증까지 완료했다. 운영 `yakmogo`, 운영 8080, `main`은 변경하지 않았다.
 
 ## 한 문장 요약
 
@@ -259,6 +259,38 @@ H2 MariaDB mode만으로 최종 호환성을 확정하지 않고 실제 MariaDB 
 
 로컬 skip은 실제 DB 검증 누락으로 간주하지 않는다. 같은 V1을 라즈베리파이의 격리 MariaDB에서 별도로 성공시켰고, feature CI에서는 MariaDB service와 환경변수를 제공해 해당 테스트가 실행됐음을 JUnit XML로 강제 확인한다.
 
+## feature CI 결과
+
+- 커밋: `68ecd70` (`feat: introduce Flyway schema baseline`)
+- GitHub Actions run: `29307073349`
+- 전체 결과: 성공
+- MariaDB 11.8 service 초기화: 성공
+- `clean test bootJar`: 성공
+- `FlywayMariaDbIntegrationTest`의 `tests=1`, `skipped=0` 확인 단계: 성공
+
+CI의 MariaDB 계정과 비밀번호는 해당 run의 격리 service에만 쓰는 테스트 값이며 운영 credential과 관계없다.
+
+## 8081 baseline과 재시작 결과
+
+feature CI 성공 후 기존 JAR과 root 전용 환경 파일을 백업하고, 8081에서만 `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true`를 1회 주입했다.
+
+| 항목 | 결과 |
+|---|---|
+| 적용 대상 | `yakmogo_enhancement`, 8081 |
+| history | `1 / 1 / existing-schema-before-flyway / BASELINE / success=1` |
+| 첫 시작 | Flyway validate·baseline·JPA validate·HTTP 200 성공 |
+| 두 번째 시작 | baseline 환경변수 제거 상태에서 validate·HTTP 200 성공 |
+| history 재실행 결과 | 1건 유지, 신규 migration 0건 |
+| 고도화 row count | `users=0`, `guardian=0`, `medicine_group=0`, `intake_log=0` |
+| Telegram·scheduler | enhancement profile의 기존 `enabled=false` 유지 |
+| 배포 JAR SHA-256 | `6a93129a586128e742b039af233ff4a630b8e85e94db8068856b14e7498a44cc` |
+| JAR 백업 | `/home/pi/myprojects/yakmogo-enhancement/backup-goal4-20260714-140745/` |
+| 환경 백업 | `/var/backups/yakmogo/yakmogo-enhancement.env-before-goal4-20260714-140745` (`root:root 600`) |
+| 운영 8080 | active, HTTP 200, 재시작하지 않음 |
+| 운영 row count | `1 / 1 / 2 / 65`, 적용 전과 동일 |
+
+1회성 baseline 환경변수는 현재 환경 파일에 존재하지 않는다. 임시 배포 JAR과 원격 점검 스크립트도 삭제했다.
+
 ## 백업 방법
 
 승인 후 migration 또는 baseline 전에 다음 순서로 수행했으며 위 결과를 확인했다.
@@ -297,6 +329,7 @@ H2 MariaDB mode만으로 최종 호환성을 확정하지 않고 실제 MariaDB 
 | DB 사용자 DDL 권한이 양 DB에 존재 | 잘못된 URL의 피해 확대 | 8081 URL 고정, 운영 미배포; 권한 분리는 후속 운영 보안 후보 |
 | 현재 백업 부재 | 실패 시 복구 불가 | 적용 전에 root 전용 dump와 복원 리허설 필수 |
 | 운영 데이터 존재 | 보정 DDL 위험 증가 | 운영에는 baseline·migration 미적용 |
+| Flyway 공식 테스트 범위보다 MariaDB가 새 버전 | 알려지지 않은 호환성 문제 | MariaDB 11.8 CI·격리 DB·8081에서 실제 migrate/validate 성공; Flyway 업그레이드 시 회귀 테스트 |
 
 ## 시행착오와 학습
 
@@ -304,17 +337,16 @@ Hibernate 생성 DDL 추출 시 H2를 MariaDB mode로 실행하면서 MariaDB di
 
 또한 권한 확인에 `SHOW GRANTS`를 사용하면 인증 hash가 출력될 수 있다. 실제 값은 문서에 기록하지 않았으며 이후 점검은 필요한 권한 사실만 기록해야 한다. 자세한 내용은 [DB 마이그레이션 트러블슈팅](../troubleshooting/database-migration.md)에 남긴다.
 
-## 남은 실행 순서
+첫 8081 배포 시 사전검사가 DB URL과 비활성 플래그를 root 환경 파일에서 찾도록 잘못 가정해 적용 전에 중단됐다. 실제 설정은 Goal 3의 `application-enhancement.yml`에 있으므로 후보 JAR 내부 profile을 검사하도록 수정했다. 당시 새 JAR이나 DB는 적용되지 않았고 기존 서비스를 재시작한 뒤 8081·8080과 DB 원상태를 확인했다.
 
-1. feature 브랜치 커밋·CI 성공 확인
-2. 8081 JAR과 enhancement 환경 파일 백업
-3. 고도화 DB에 1회 baseline version 1
-4. JPA validate와 HTTP·DB·bot/scheduler 검증
-5. baseline-on-migrate 제거 후 두 번째 재시작 검증
-6. 운영 8080과 운영 DB가 변하지 않았음을 읽기 확인
-7. Goal 문서·troubleshooting 최종 갱신
-8. feature 커밋·CI 후 `enhancement` 통합
+## 완료 조건 판정
 
-## 현재 상태
+- 세 스키마 기준선 확정: 완료
+- 백업과 격리 복원 리허설: 완료
+- V1과 `ddl-auto=validate`: 완료
+- 로컬·CI·실제 MariaDB 검증: 완료
+- 8081 기존 DB baseline과 baseline 비활성 재시작: 완료
+- 운영 8080·운영 DB 미변경 확인: 완료
+- 상세 한국어 Goal·troubleshooting 문서: 완료
 
-승인 지점 1의 승인을 받아 구현 중이다. 다음 별도 승인 지점은 Goal 8 자동 배포 활성화 전이며, Goal 4의 8081 수동 검증은 이미 승인된 범위에 포함된다.
+다음 별도 승인 지점은 Goal 8 자동 배포 활성화 전이다. Goal 5는 새 feature 브랜치에서 시작하며 Goal 4 범위와 코드를 섞지 않는다.

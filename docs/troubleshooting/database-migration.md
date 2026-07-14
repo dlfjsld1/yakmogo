@@ -133,3 +133,64 @@ V1의 컬럼 순서를 기존 스키마와 동일하게 수정했다. 비교 시
 - 로컬 shell과 원격 shell의 변수·상태 표현을 섞지 않는다.
 - exit 0만 믿지 않고 핵심 검증 결과가 실제로 출력됐는지 확인한다.
 - 실패 후 임시 DB, JAR, 스크립트가 남지 않았는지 별도로 검사한다.
+
+## 사례 6: 설정 계층을 잘못 가정한 배포 사전검사
+
+### 상황
+
+8081 baseline 적용 전에 datasource 대상과 Telegram·scheduler 비활성 상태를 확인하는 자동 검사를 작성했다.
+
+### 증상
+
+root 전용 환경 파일에서 다음 세 값을 찾지 못해 새 JAR을 적용하기 전에 배포 스크립트가 종료됐다.
+
+- enhancement datasource URL
+- Telegram 비활성 플래그
+- scheduler 비활성 플래그
+
+자동 rollback이 기존 서비스를 중지·시작해 8081이 불필요하게 한 번 재시작됐다. 새 JAR, Flyway history, DB 변경은 이 시점에 적용되지 않았다.
+
+### 원인
+
+Goal 3에서 비밀값만 `/etc/yakmogo/yakmogo-enhancement.env`에 두고, 실행 환경별 공개 설정은 JAR의 `application-enhancement.yml`에 분리했다. 배포 스크립트가 이 설정 소유 경계를 반대로 가정했다. 또한 rollback trap이 실제 백업 또는 교체가 있었는지 확인하지 않고 서비스부터 중지했다.
+
+### 해결
+
+- 후보 JAR에서 `application-enhancement.yml`을 추출해 8081, `yakmogo_enhancement`, 두 비활성 플래그를 검사했다.
+- 비밀 환경 파일은 실제로 변경하는 1회성 baseline 변수의 백업·복원에만 사용했다.
+- JAR 또는 환경 파일 백업이 생성된 뒤에만 rollback이 서비스를 복구하도록 조건을 좁혔다.
+- 재시도 전에 8081·8080 HTTP 200, history 테이블 부재, baseline 환경변수 부재, 기존 JAR checksum을 확인했다.
+
+### 재발 방지
+
+- 배포 검사는 값의 실제 소유 계층(profile 파일, 환경 파일, systemd)을 먼저 확인한다.
+- 공개 설정 확인을 위해 비밀 파일의 전체 내용을 출력하지 않는다.
+- rollback은 변경 단계별 플래그를 두어 실제로 수행된 변경만 되돌린다.
+- 사전검사 실패와 새 버전 런타임 실패를 로그 시간과 process 시작 기록으로 구분한다.
+
+## 사례 7: Flyway의 MariaDB 최신 버전 경고
+
+### 상황
+
+Spring Boot 3.5.8이 관리하는 Flyway 11.7.2로 MariaDB 11.8.6에 migrate와 validate를 수행했다.
+
+### 증상
+
+Flyway는 MariaDB 11.8이 해당 Flyway 빌드가 공식적으로 테스트한 최신 MariaDB 11.2보다 새 버전이라는 업그레이드 권고 경고를 남겼다.
+
+### 판단
+
+지원 불가 오류가 아니라 테스트 범위 경고다. 다음 검증은 모두 성공했다.
+
+- CI MariaDB 11.8 빈 DB V1 적용·validate·재실행 무변경
+- 라즈베리파이 임시 MariaDB 11.8 DB의 애플리케이션 이중 시작
+- 기존 `yakmogo_enhancement`의 baseline·Flyway validate·JPA validate
+- baseline 허용값 제거 후 두 번째 8081 시작
+
+따라서 Goal 4를 차단하지 않되 잔여 호환성 위험으로 기록한다.
+
+### 재발 방지
+
+- Spring Boot 또는 Flyway 업그레이드 때 MariaDB 통합 테스트를 반드시 다시 실행한다.
+- MariaDB server를 올릴 때도 빈 DB migration과 기존 DB validate를 함께 검증한다.
+- 경고가 실제 unsupported 오류로 바뀌면 임의 version override보다 Spring Boot 호환표와 Flyway release 범위를 먼저 검토한다.
