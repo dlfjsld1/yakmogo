@@ -13,7 +13,6 @@
 - [CI/CD 트러블슈팅](docs/troubleshooting/ci-cd.md)
 - [알림 전달과 재시도 트러블슈팅](docs/troubleshooting/notification-reliability.md)
 - [8081 CI/CD 배포 런북](docs/runbooks/enhancement-cicd.md)
-- [Raspberry Pi Docker 운영 복구 런북](docs/runbooks/pi-docker-recovery.md)
 
 ## 📌 텔레그램 봇 설정 방법
 
