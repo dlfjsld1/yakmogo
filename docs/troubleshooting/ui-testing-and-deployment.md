@@ -211,6 +211,8 @@ critical 0
 
 - web 테스트: 2 files, 7 tests 성공
 - web lint/build 성공
+- Web feature CI 29312366717 성공
+- Backend 문서 feature CI 29312365268 성공
 - 최종 JS bundle: `assets/index-CdQ-TAxj.js`
 - 최종 JAR SHA-256: `2f6e3bf4e590005f87cada33b9208ae232c31f8260721831eef32f19901216c1`
 - 8081 백업: `/home/pi/myprojects/yakmogo-enhancement/backup-goal6-20260714-153500`

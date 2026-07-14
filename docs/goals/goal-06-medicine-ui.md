@@ -254,6 +254,8 @@ MedicineManage mount
 | `npm run lint` | 성공 |
 | `npm run build` | 성공, 95 modules transformed |
 | `git diff --check` | 성공 |
+| [Web feature CI 29312366717](https://github.com/dlfjsld1/yakmogo-web/actions/runs/29312366717) | 성공 |
+| [Backend 문서 feature CI 29312365268](https://github.com/dlfjsld1/yakmogo/actions/runs/29312365268) | 성공 |
 
 자동 테스트가 보호하는 시나리오:
 
