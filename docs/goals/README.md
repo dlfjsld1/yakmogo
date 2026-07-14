@@ -43,7 +43,7 @@
 - [Goal 6: React 약 관리 UI·UX](goal-06-medicine-ui.md) — 완료
 - [Goal 7: 알림 신뢰성 고도화](goal-07-notification-reliability.md) — 완료
 - [Goal 8: CI/CD와 8081 자동 배포·롤백](goal-08-ci-cd.md) — 완료
-- [Docker 전환 준비: 8081 shadow container](goal-docker-enhancement.md) — 진행 중
+- [Docker 전환: 8081 enhancement container](goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 배포 승인 대기
 
 ## Goal 1~10 실행 프롬프트
 

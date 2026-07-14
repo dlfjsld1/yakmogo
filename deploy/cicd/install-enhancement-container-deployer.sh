@@ -29,5 +29,10 @@ install -d -o yakmogo-runner -g yakmogo-runner -m 0750 \
 install -d -o root -g root -m 0700 \
   /var/lib/yakmogo-container-deploy/work \
   /var/lib/yakmogo-container-deploy/state
+rm -f -- \
+  /etc/sudoers.d/yakmogo-enhancement \
+  /etc/sudoers.d/yakmogo-enhancement-deploy \
+  /etc/sudoers.d/yakmogo-enhancement-container-shadow
+visudo -c >/dev/null
 
 echo "enhancement container deployer installed"

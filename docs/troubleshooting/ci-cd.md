@@ -462,3 +462,40 @@ Latest tested MariaDB version: 11.2.
 ### 후속 작업
 
 Spring Boot dependency management가 선택한 Flyway 버전과 최신 MariaDB 지원표를 별도 검토한다. 버전을 변경한다면 MariaDB migration test, enhancement DB backup, restore rehearsal을 함께 수행한다.
+
+## 사례 15: systemd Java 종료 코드 143이 cutover를 실패로 판정시킴
+
+### 증상
+
+Docker 8081은 `/` 200, JavaScript 200과 보호 API 401을 만족했지만 helper가 마지막에 다음 상태를 관찰하고 systemd 8081과 18081 shadow를 복원했다.
+
+```text
+active=failed enabled=disabled
+```
+
+### 원인
+
+기존 Java 프로세스를 정상 종료한 뒤 unit은 꺼졌지만 종료 코드 143이 systemd의 failed 상태로 남았다. helper는 성공 조건을 `inactive/disabled`로 좁혔으므로 container가 정상이어도 cutover를 확정하지 않았다.
+
+### 해결과 검증
+
+unit을 disable한 뒤 `systemctl reset-failed yakmogo-enhancement.service`로 과거 종료 결과만 정리하고 `inactive/disabled`를 다시 확인했다. unit의 `SuccessExitStatus`나 운영 8080 설정은 변경하지 않았다.
+
+첫 두 시도는 자동 rollback으로 기존 JAR SHA와 8081 HTTP를 복구했고, 운영 8080 PID `1794958`과 JAR SHA는 변하지 않았다. 보정 후 세 번째 시도에서 Docker 8081 전환이 성공했다.
+
+## 사례 16: 즉시 종료 image로 container rollback을 실제 검증함
+
+### 방법
+
+Pi의 검증된 image를 기반으로 entrypoint가 `/bin/false`인 ARM64 테스트 image를 만들었다. 별도 SHA·label·manifest·checksum을 갖춘 정상 형식의 artifact로 배포해 검증 이전 거부가 아니라 실제 container 기동 실패를 유도했다.
+
+### 결과
+
+helper는 60초 readiness 실패 뒤 테스트 container를 제거하고 직전 정상 release 설정과 image를 복원했다.
+
+```text
+container deploy error: container deployment failed and previous runtime was restored
+ROLLBACK_TEST=PASSED
+```
+
+복구 후 8081 `/` 200, 보호 API 401, image SHA와 보안 옵션을 다시 확인했다. 테스트 image, staging directory와 request도 삭제했다. 다른 6개 container ID와 운영 8080은 변하지 않았다.

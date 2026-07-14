@@ -1,6 +1,6 @@
-# Yakmogo enhancement Docker shadow 런북
+# Yakmogo enhancement Docker shadow 런북 (전환 전 기록)
 
-> 현재 상태: 18081 shadow 검증 완료. Shadow container는 승인 검토를 위해 실행 중이며 systemd 8081은 그대로 active다.
+> 현재 상태: 2026-07-15에 Docker 8081 전환을 완료해 18081 shadow는 더 이상 실행하지 않는다. 현재 운영 절차는 [8081 container 배포 런북](enhancement-container-deployment.md)을 따른다.
 
 ## 안전 경계
 

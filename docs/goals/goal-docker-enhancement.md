@@ -1,12 +1,12 @@
-# Docker 전환 준비: 8081 shadow container
+# Docker 전환: 8081 enhancement container
 
 ## 현재 상태
 
-`feature/docker-enhancement`에서 Docker image artifact와 18081 shadow 배포 검증을 완료했다. 기존 systemd 8081 중지, 컨테이너 8081 전환, enhancement 자동 container 배포는 아직 수행하지 않았다.
+`feature/docker-enhancement`에서 18081 shadow 검증과 systemd 8081에서 Docker 8081로의 전환, 실패 후 자동 롤백 실기 검증을 완료했다. 자동 container 배포 코드는 feature CI를 통과했지만 runner의 새 root helper sudoers는 아직 설치하지 않았고 브랜치도 `enhancement`에 병합하지 않았다.
 
 ## 한 문장 요약
 
-현재 CI의 test·통합 JAR·manifest·checksum 경계는 유지하면서 배포 단위만 ARM64 Docker image tar로 확장하고, 기존 8081과 운영 8080을 그대로 둔 채 18081에서 같은 enhancement DB 연결과 HTTP 계약을 검증한다.
+현재 CI의 test·통합 JAR·manifest·checksum 경계를 유지하면서 ARM64 Docker image tar를 배포 단위로 사용하고, 운영 8080을 그대로 둔 채 고도화 8081을 보안 제한된 container로 실행한다.
 
 ## 작업 배경
 
@@ -32,14 +32,15 @@ Pi 실환경 조사 결과:
 - non-root user, read-only root filesystem, capability 제거, no-new-privileges
 - runner가 Docker socket에 접근하지 않는 고정 root helper
 - 8080·systemd 8081·다른 container ID 불변 검사
+- 최초 cutover 실패 시 systemd 8081과 shadow 복원
+- 이후 container 배포 실패 시 직전 정상 image와 release 설정 복원
 - CI shell·Compose 안전 계약 검사
 - 상세 한국어 문서와 시행착오 기록
 
 ## 제외 범위
 
-- systemd `yakmogo-enhancement.service` 중지·비활성화
-- host 8081을 container에 넘기는 cutover
-- container 기반 enhancement 자동 배포 활성화
+- runner의 새 container deploy sudoers 실제 설치
+- `enhancement` 병합과 자동 container 배포 활성화
 - MariaDB listen address 변경 또는 DB container화
 - 운영 8080과 운영 DB `yakmogo` 변경
 - 기존 Docker project 변경
@@ -135,27 +136,22 @@ SCHEDULING_ENABLED=false
 ## 변경 파일
 
 - `deploy/docker/Dockerfile`: Java 21 non-root runtime image
-- `deploy/docker/compose.yml`: 18081 shadow runtime 보안 계약
+- `deploy/docker/compose.yml`: port를 release 설정으로 받는 8081 runtime 보안 계약
 - `scripts/ci/build-container-candidate.sh`: ARM64 image tar와 manifest 생성
 - `scripts/ci/test-container-contract.sh`: Docker/Compose/helper 안전 계약
-- `deploy/cicd/yakmogo-enhancement-container-shadow`: 18081 전용 root helper
-- `deploy/cicd/install-enhancement-container-shadow.sh`: Compose·helper·sudoers 설치
+- `deploy/cicd/yakmogo-enhancement-container-deploy`: 최초 cutover와 이후 update·rollback root helper
+- `deploy/cicd/install-enhancement-container-deployer.sh`: 최종 Compose·helper·한정 sudoers 설치
 - `.gitattributes`: Linux 배포 파일 LF 강제
-- `.github/workflows/release-candidate.yml`: image artifact 생성
+- `.github/workflows/release-candidate.yml`: image artifact 생성과 container staging·배포
 
-## 다음 승인 지점
+## 남은 승인 지점
 
-shadow 검증 뒤 다음 내용을 보고하고 멈춘다.
+실기 검증 뒤 다음 두 변경 전에 보고하고 멈춘다.
 
-- image SHA와 architecture
-- container 보안 설정
-- 18081 인수 테스트
-- 8080·systemd 8081·다른 container 불변
-- MariaDB와 Flyway 동작
-- container log의 민감정보 비노출
-- cutover·rollback 명령과 예상 중단 시간
+- `yakmogo-runner`에 `/usr/local/sbin/yakmogo-enhancement-container-deploy` 한 명령의 passwordless sudo 허용
+- 검증된 feature를 `enhancement`에 병합해 container 자동 배포 workflow 활성화
 
-승인 전에는 host 8081을 container에 넘기지 않는다.
+기존 JAR·shadow sudoers는 포트 충돌을 막기 위해 제거했으며 현재 runner의 Yakmogo root 명령은 없다.
 
 ## 실제 shadow 검증 결과
 
@@ -203,3 +199,24 @@ DB와 프로세스:
 - image tar는 첫 build 기준 159 MiB이므로 보관·삭제 정책을 Goal 9에서 정해야 한다.
 - Goal 9에서 Uptime Kuma monitor를 추가할 때 이름뿐 아니라 감시 대상, 정상 조건, 장애 영향, 확인 명령과 Yakmogo 복구 문서를 설명 또는 비고에 기록한다.
 - host network는 MariaDB loopback 연결을 유지하는 대신 network namespace 격리를 줄인다.
+
+## 실제 8081 cutover와 rollback 검증 결과
+
+2026-07-15에 검증된 image `9e1deebc7a3f6c2e9ee70a8042d171a7d4072c5d`를 18081에서 8081로 전환했다.
+
+- 전환 helper feature CI: [run 29372051135](https://github.com/dlfjsld1/yakmogo/actions/runs/29372051135) 성공
+- systemd `yakmogo-enhancement.service`: `inactive`, `disabled`
+- container `yakmogo-enhancement`: 8081, running
+- 8081 `/`: 200
+- 예상 JavaScript bundle: 200
+- 보호 API: 401
+- 새 브라우저 원점에서 관리자 인증 화면 렌더링, console error 0
+- Telegram bot과 scheduler: Compose 강제 `false`
+- container user `10001:10001`, read-only, `CapDrop=ALL`, no-new-privileges 유지
+- 운영 8080 PID `1794958`, JAR SHA, HTTP 200 불변
+- 기존 6개 container name/ID 불변
+- 이전 18081 endpoint: 미응답으로 전환 완료 확인
+
+즉시 종료하는 ARM64 테스트 image를 실제 배포해 readiness 실패를 만들었다. helper는 실패 image를 제거하고 직전 정상 image를 8081에 재기동했으며 `/` 200, 보호 API 401을 다시 확인했다. 테스트 image, staging과 request는 모두 삭제했다.
+
+첫 두 cutover 시도는 systemd가 Java 종료 코드 143을 `failed`로 남겨 엄격한 `inactive` 검사에 걸렸고, 두 번 모두 systemd 8081과 shadow를 자동 복구했다. `systemctl reset-failed` 뒤 `inactive/disabled`를 확인하도록 수정한 세 번째 시도에서 정상 전환됐다. 자세한 과정은 [CI/CD troubleshooting](../troubleshooting/ci-cd.md)에 기록했다.
