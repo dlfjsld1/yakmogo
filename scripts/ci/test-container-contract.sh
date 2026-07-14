@@ -5,6 +5,8 @@ repository_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 dockerfile=$repository_root/deploy/docker/Dockerfile
 compose=$repository_root/deploy/docker/compose.yml
 deploy_helper=$repository_root/deploy/cicd/yakmogo-enhancement-container-deploy
+portable_compose=$repository_root/deploy/portable/compose.yml
+release_workflow=$repository_root/.github/workflows/release-candidate.yml
 
 grep -Fxq 'FROM eclipse-temurin:21.0.11_10-jre-noble' "$dockerfile"
 grep -Fxq 'USER 10001:10001' "$dockerfile"
@@ -40,3 +42,14 @@ grep -Fq '/etc/sudoers.d/yakmogo-enhancement-container-shadow' \
   "$repository_root/deploy/cicd/install-enhancement-container-deployer.sh"
 
 echo "Container release safety contract passed"
+
+grep -Fq 'yakmogo-mariadb:' "$portable_compose"
+grep -Fq 'yakmogo-app:' "$portable_compose"
+grep -Fq 'jdbc:mariadb://yakmogo-mariadb:3306/' "$portable_compose"
+grep -Fq 'yakmogo-mariadb-data:' "$portable_compose"
+! awk '/yakmogo-mariadb:/,/yakmogo-app:/' "$portable_compose" | grep -Eq '^[[:space:]]+ports:'
+grep -Fq 'runs-on: ubuntu-latest' "$release_workflow"
+! grep -Fq 'self-hosted' "$release_workflow"
+! grep -Fq 'Deploy enhancement container' "$release_workflow"
+
+echo "Portable installation contract passed"

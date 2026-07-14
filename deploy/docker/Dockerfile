@@ -8,5 +8,5 @@ WORKDIR /app
 COPY --chown=10001:10001 ${JAR_NAME} /app/yakmogo.jar
 
 USER 10001:10001
-EXPOSE 8081
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/yakmogo.jar"]

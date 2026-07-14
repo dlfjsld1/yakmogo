@@ -2,6 +2,8 @@
 set -euo pipefail
 
 [[ $# -eq 1 ]] || { echo "usage: $0 <release-dir>" >&2; exit 2; }
+[[ ${RELEASE_VERSION:-} =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] \
+  || { echo "RELEASE_VERSION must be a version such as 0.0.7 or 0.0.7-rc.1" >&2; exit 2; }
 
 repository_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 release_dir=$(cd "$1" && pwd)
@@ -30,8 +32,8 @@ jar_sha=$(manifest_value JAR_SHA256)
 [[ $(sha256sum "$release_dir/$jar_name" | awk '{print $1}') == "$jar_sha" ]] \
   || { echo "release JAR checksum mismatch" >&2; exit 1; }
 
-image_ref=yakmogo-enhancement:$backend_sha
-image_tar_name=yakmogo-enhancement-${backend_sha}-linux-arm64.tar
+image_ref=yakmogo:$RELEASE_VERSION
+image_tar_name=yakmogo-${RELEASE_VERSION}-linux-arm64.tar
 image_tar=$release_dir/$image_tar_name
 
 docker buildx build \
@@ -42,6 +44,7 @@ docker buildx build \
   --label "com.yakmogo.backend-sha=$backend_sha" \
   --label "com.yakmogo.web-sha=$web_sha" \
   --label "com.yakmogo.jar-sha256=$jar_sha" \
+  --label "org.opencontainers.image.version=$RELEASE_VERSION" \
   --label "org.opencontainers.image.source=https://github.com/dlfjsld1/yakmogo" \
   --output "type=docker,dest=$image_tar" \
   "$release_dir"
@@ -50,8 +53,9 @@ image_tar_sha=$(sha256sum "$image_tar" | awk '{print $1}')
 (cd "$release_dir" && sha256sum "$image_tar_name" > "$image_tar_name.sha256")
 
 manifest_tmp=$(mktemp "$release_dir/release-manifest.XXXXXX")
-grep -vE '^(IMAGE_REF|IMAGE_ARCH|IMAGE_TAR|IMAGE_TAR_SHA256)=' "$manifest" > "$manifest_tmp"
+grep -vE '^(RELEASE_VERSION|IMAGE_REF|IMAGE_ARCH|IMAGE_TAR|IMAGE_TAR_SHA256)=' "$manifest" > "$manifest_tmp"
 cat >> "$manifest_tmp" <<EOF
+RELEASE_VERSION=$RELEASE_VERSION
 IMAGE_REF=$image_ref
 IMAGE_ARCH=arm64
 IMAGE_TAR=$image_tar_name

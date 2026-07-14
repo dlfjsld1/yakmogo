@@ -1,0 +1,76 @@
+name: ${COMPOSE_PROJECT_NAME:-yakmogo}
+
+services:
+  yakmogo-mariadb:
+    image: mariadb:11.8
+    environment:
+      MARIADB_DATABASE: ${YAKMOGO_DB_NAME:?YAKMOGO_DB_NAME is required}
+      MARIADB_USER: ${YAKMOGO_DB_USER:?YAKMOGO_DB_USER is required}
+      MARIADB_PASSWORD: ${YAKMOGO_DB_PASSWORD:?YAKMOGO_DB_PASSWORD is required}
+      MARIADB_ROOT_PASSWORD: ${YAKMOGO_DB_ROOT_PASSWORD:?YAKMOGO_DB_ROOT_PASSWORD is required}
+    volumes:
+      - yakmogo-mariadb-data:/var/lib/mysql
+    networks:
+      - yakmogo-internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  yakmogo-app:
+    image: ${YAKMOGO_IMAGE:?YAKMOGO_IMAGE is required}
+    depends_on:
+      yakmogo-mariadb:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: enhancement
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://yakmogo-mariadb:3306/${YAKMOGO_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${YAKMOGO_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${YAKMOGO_DB_PASSWORD}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?AUTH_TOKEN_SECRET is required}
+      AUTH_TOKEN_TTL_SECONDS: ${AUTH_TOKEN_TTL_SECONDS:-3600}
+      AUTH_LOGIN_PROOF_TTL_SECONDS: ${AUTH_LOGIN_PROOF_TTL_SECONDS:-300}
+      FRONTEND_URL: ${YAKMOGO_FRONTEND_URL:?YAKMOGO_FRONTEND_URL is required}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-disabled}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-disabled}
+      TELEGRAM_BOT_ENABLED: ${TELEGRAM_BOT_ENABLED:-false}
+      SCHEDULING_ENABLED: ${SCHEDULING_ENABLED:-false}
+    ports:
+      - "${YAKMOGO_BIND_ADDRESS:-0.0.0.0}:${YAKMOGO_HTTP_PORT:?YAKMOGO_HTTP_PORT is required}:8080"
+    networks:
+      - yakmogo-internal
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    init: true
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  yakmogo-mariadb-data:
+    name: ${COMPOSE_PROJECT_NAME:-yakmogo}-mariadb-data
+
+networks:
+  yakmogo-internal:
+    name: ${COMPOSE_PROJECT_NAME:-yakmogo}-internal

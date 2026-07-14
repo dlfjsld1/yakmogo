@@ -63,9 +63,9 @@ jobs:
       - name: Validate release candidate tooling
         shell: bash
         run: |
-          chmod +x scripts/ci/*.sh deploy/cicd/*.sh \
+          chmod +x scripts/ci/*.sh scripts/release/*.sh deploy/portable/*.sh deploy/cicd/*.sh \
             deploy/cicd/yakmogo-enhancement-container-deploy
-          bash -n scripts/ci/*.sh deploy/cicd/*.sh \
+          bash -n scripts/ci/*.sh scripts/release/*.sh deploy/portable/*.sh deploy/cicd/*.sh \
             deploy/cicd/yakmogo-enhancement-container-deploy
           scripts/ci/test-integrated-jar-verifier.sh
           scripts/ci/test-container-contract.sh
