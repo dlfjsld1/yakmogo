@@ -12,8 +12,11 @@ manifest=$release_dir/release-manifest.txt
 [[ -f $manifest ]] || { echo "release manifest not found" >&2; exit 1; }
 
 image_tar=$(sed -n 's/^IMAGE_TAR=//p' "$manifest")
+release_version=$(sed -n 's/^RELEASE_VERSION=//p' "$manifest")
 [[ $image_tar =~ ^yakmogo-[A-Za-z0-9.-]+-linux-arm64\.tar$ ]] \
   || { echo "invalid image tar in manifest" >&2; exit 1; }
+[[ $release_version =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] \
+  || { echo "invalid release version in manifest" >&2; exit 1; }
 [[ -f $release_dir/$image_tar ]] || { echo "image tar not found" >&2; exit 1; }
 
 rm -rf "$output_dir"
@@ -27,4 +30,11 @@ cp "$release_dir/$image_tar" "$release_dir/$image_tar.sha256" "$output_dir/image
 cp "$manifest" "$output_dir/release-manifest.txt"
 chmod +x "$output_dir"/*.sh
 
+archive_dir=$(dirname "$output_dir")
+archive=$archive_dir/yakmogo-${release_version}-portable.tar.gz
+rm -f "$archive" "$archive.sha256"
+tar -C "$archive_dir" -czf "$archive" "$(basename "$output_dir")"
+(cd "$archive_dir" && sha256sum "$(basename "$archive")" > "$(basename "$archive").sha256")
+
 echo "package_dir=$output_dir"
+echo "package_archive=$archive"

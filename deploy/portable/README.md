@@ -38,7 +38,7 @@ chmod 600 .env
 .\scripts\release\build-image.ps1 -Version 0.0.7 -WebDist ..\yakmogo-web\dist
 ```
 
-결과는 `build/portable`에 만들어진다. 이 폴더 전체를 새 시스템으로 옮긴다. CI도 같은 셸 스크립트를 사용하므로 수동 빌드와 CI 결과의 구조가 같다.
+결과는 `build/portable` 폴더와 실행 권한을 보존하는 `build/yakmogo-<version>-portable.tar.gz`로 만들어진다. 새 시스템에는 압축 파일과 `.sha256`을 옮겨 체크섬을 확인한 뒤 압축을 푼다. CI도 같은 셸 스크립트를 사용하므로 수동 빌드와 CI 결과의 구조가 같다.
 
 ## 데이터 위치와 제거 주의
 

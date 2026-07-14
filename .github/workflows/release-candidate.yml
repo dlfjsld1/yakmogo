@@ -91,6 +91,8 @@ jobs:
           name: yakmogo-enhancement-${{ github.sha }}
           path: |
             build/portable/**
+            build/yakmogo-*-portable.tar.gz
+            build/yakmogo-*-portable.tar.gz.sha256
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
