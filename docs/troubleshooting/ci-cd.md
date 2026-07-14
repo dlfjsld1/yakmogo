@@ -383,3 +383,33 @@ grep -Fxq expected-entry candidate-entries.txt
 ### 안전 영향
 
 오류는 candidate 검증 중 발생해 JAR 교체와 서비스 재시작 전 종료됐다. 8080과 8081 실행 파일·PID에는 변화가 없었다.
+
+## 사례 11: Windows 작업 트리의 CRLF shell script를 Pi에 직접 전송함
+
+### 증상
+
+수정한 root helper를 Windows 작업 트리에서 SCP로 재설치한 뒤 rollback probe가 다음 오류로 후보 검증 전에 종료됐다.
+
+```text
+env: ‘bash\r’: No such file or directory
+```
+
+### 원인
+
+저장소 blob과 GitHub Actions checkout은 LF였지만 Windows의 `core.autocrlf=true` 작업 트리 파일은 CRLF였다. 이 파일을 직접 SCP하면 Linux shebang의 interpreter가 `bash\r`로 해석된다.
+
+### 해결
+
+재전송 전에 배포 shell과 sudoers의 줄바꿈을 LF로 정규화하고 다음 세 검사를 모두 통과한 뒤 설치했다.
+
+```text
+로컬 CRLF 개수 0
+Pi bash -n 성공
+Pi 첫 줄 bytes: 23 21 ... 62 61 73 68 0a
+```
+
+GitHub Actions artifact 배포는 Linux runner에서 만들어지므로 이 수동 SCP 문제의 영향을 받지 않는다. 수동 복구나 helper 재설치 때에는 Windows 작업 트리 파일을 그대로 전송하지 않는다.
+
+### 안전 영향
+
+shebang 해석 단계에서 중단되어 JAR 교체, 8081 재시작, 8080 변경은 발생하지 않았다.
