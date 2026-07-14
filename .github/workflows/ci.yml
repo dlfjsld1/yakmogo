@@ -63,6 +63,9 @@ jobs:
       - name: Validate release candidate tooling
         shell: bash
         run: |
-          chmod +x scripts/ci/*.sh
-          bash -n scripts/ci/*.sh
+          chmod +x scripts/ci/*.sh deploy/cicd/*.sh deploy/cicd/yakmogo-enhancement-deploy
+          bash -n scripts/ci/*.sh deploy/cicd/*.sh deploy/cicd/yakmogo-enhancement-deploy
           scripts/ci/test-integrated-jar-verifier.sh
+          grep -Fxq \
+            'yakmogo-runner ALL=(root) NOPASSWD: /usr/local/sbin/yakmogo-enhancement-deploy' \
+            deploy/cicd/yakmogo-enhancement.sudoers

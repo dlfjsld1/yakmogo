@@ -1,6 +1,6 @@
 # 8081 CI/CD 배포 런북
 
-> 현재 상태: 설계 및 로컬 release candidate 검증 완료. Self-hosted runner 등록과 로컬 자동 배포는 사용자 승인 전 비활성이다.
+> 현재 상태: 사용자 승인 완료. 배포 코드와 로컬 release candidate 검증 완료, Raspberry Pi 활성화 및 실제 rollback 검증 진행 중이다.
 
 ## 목적과 안전 경계
 
@@ -46,11 +46,10 @@ scripts/ci/build-release-candidate.sh ../yakmogo-web/dist
 ```text
 build/release/yakmogo-enhancement-<sha>.jar
 build/release/yakmogo-enhancement-<sha>.jar.sha256
+build/release/release-manifest.txt
 ```
 
-## 승인 후 최초 1회 서버 설치 계획
-
-다음은 계획이며 아직 실행하지 않았다.
+## 최초 1회 서버 설치
 
 1. 전용 `yakmogo-runner` 사용자 생성
 2. 공식 Linux ARM64 GitHub Actions runner를 `/var/lib/yakmogo-runner`에 설치
@@ -80,9 +79,9 @@ root helper가 허용할 입력은 다음 형식으로 제한한다.
 - web SHA: 40자리 lowercase hexadecimal
 - checksum: 64자리 lowercase hexadecimal
 - JS bundle: `/assets/index-[A-Za-z0-9_-]+\.js`
-- candidate: 고정 staging root 아래 `<backend-sha>.jar`
+- candidate: 고정 staging root 아래 `yakmogo-enhancement-<backend-sha>.jar`
 
-경로를 문자열 연결한 뒤 `realpath`가 고정 root 아래인지 다시 확인한다. symlink 후보는 거부한다.
+request·manifest·candidate·checksum은 일반 파일만 허용하고 symlink를 거부한다. candidate와 checksum을 root 전용 임시 디렉터리로 복사한 뒤 배포 직전 다시 hash한다.
 
 ## backup 순서
 
@@ -92,7 +91,8 @@ root helper가 허용할 입력은 다음 형식으로 제한한다.
   systemd/yakmogo-enhancement.service
   runtime/start.sh
   secrets/yakmogo-enhancement.env
-  manifest.txt
+  release-manifest.txt
+  deployment-result.txt
 ```
 
 권한 계획:

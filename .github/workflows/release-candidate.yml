@@ -71,7 +71,8 @@ jobs:
       - name: Build and verify integrated JAR
         run: |
           chmod +x scripts/ci/*.sh gradlew
-          scripts/ci/build-release-candidate.sh yakmogo-web/dist
+          WEB_SHA=$(git -C yakmogo-web rev-parse HEAD) \
+            scripts/ci/build-release-candidate.sh yakmogo-web/dist
 
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
@@ -80,5 +81,44 @@ jobs:
           path: |
             build/release/*.jar
             build/release/*.sha256
+            build/release/release-manifest.txt
           if-no-files-found: error
           retention-days: 7
+
+  deploy:
+    needs: assemble
+    if: >-
+      github.repository == 'dlfjsld1/yakmogo' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/enhancement'
+    runs-on: [self-hosted, Linux, ARM64, yakmogo-enhancement]
+    environment: enhancement
+    steps:
+      - name: Download verified release candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: yakmogo-enhancement-${{ github.sha }}
+          path: release-artifact
+
+      - name: Verify downloaded checksum
+        working-directory: release-artifact
+        run: sha256sum --check yakmogo-enhancement-${{ github.sha }}.jar.sha256
+
+      - name: Stage release request
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="/var/lib/yakmogo-deploy/incoming/${GITHUB_SHA}"
+          install -d -m 0750 "$release_dir"
+          install -m 0640 \
+            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}.jar" \
+            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}.jar.sha256" \
+            "release-artifact/release-manifest.txt" \
+            "$release_dir/"
+          request_tmp=$(mktemp /var/lib/yakmogo-deploy/incoming/request.XXXXXX)
+          printf 'BACKEND_SHA=%s\nMODE=deploy\n' "$GITHUB_SHA" > "$request_tmp"
+          chmod 0640 "$request_tmp"
+          mv -f "$request_tmp" /var/lib/yakmogo-deploy/incoming/request
+
+      - name: Deploy only enhancement 8081
+        run: sudo /usr/local/sbin/yakmogo-enhancement-deploy

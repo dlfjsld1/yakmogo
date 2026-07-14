@@ -1,0 +1,205 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "must run as root" >&2; exit 1; }
+[[ $# -eq 0 ]] || { echo "arguments are not allowed" >&2; exit 2; }
+
+readonly SERVICE=yakmogo-enhancement.service
+readonly PROD_SERVICE=yakmogo.service
+readonly APP_JAR=/home/pi/myprojects/yakmogo-enhancement/yakmogo-0.0.7-SNAPSHOT.jar
+readonly PROD_JAR=/home/pi/myprojects/yakmogo/yakmogo-0.0.7-SNAPSHOT.jar
+readonly UNIT=/etc/systemd/system/yakmogo-enhancement.service
+readonly START_SCRIPT=/home/pi/myprojects/yakmogo-enhancement/start.sh
+readonly ENV_FILE=/etc/yakmogo/yakmogo-enhancement.env
+readonly INCOMING_ROOT=/var/lib/yakmogo-deploy/incoming
+readonly WORK_ROOT=/var/lib/yakmogo-deploy/work
+readonly BACKUP_ROOT=/var/backups/yakmogo/enhancement
+readonly REQUEST=$INCOMING_ROOT/request
+
+die() {
+  echo "deploy error: $*" >&2
+  exit 1
+}
+
+manifest_value() {
+  local key=$1 file=$2 count value
+  count=$(grep -cE "^${key}=" "$file" || true)
+  [[ $count -eq 1 ]] || die "manifest key must appear once: $key"
+  value=$(sed -n "s/^${key}=//p" "$file")
+  printf '%s' "$value"
+}
+
+http_code() {
+  curl --silent --show-error --output /dev/null --write-out '%{http_code}' "$1" 2>/dev/null || true
+}
+
+health_ready() {
+  local bundle=$1 i
+  for ((i = 0; i < 60; i++)); do
+    if [[ $(systemctl is-active "$SERVICE" 2>/dev/null || true) == active ]] \
+      && [[ $(http_code http://127.0.0.1:8081/) == 200 ]] \
+      && [[ $(http_code "http://127.0.0.1:8081${bundle}") == 200 ]] \
+      && [[ $(http_code http://127.0.0.1:8081/api/v1/users) == 401 ]]; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+production_unchanged() {
+  local expected_pid=$1 expected_sha=$2
+  [[ $(systemctl is-active "$PROD_SERVICE" 2>/dev/null || true) == active ]] \
+    && [[ $(systemctl show -p MainPID --value "$PROD_SERVICE") == "$expected_pid" ]] \
+    && [[ $(sha256sum "$PROD_JAR" | awk '{print $1}') == "$expected_sha" ]] \
+    && [[ $(http_code http://127.0.0.1:8080/) == 200 ]]
+}
+
+restore_backup() {
+  local backup=$1 old_bundle=$2 prod_pid=$3 prod_sha=$4 before_app_sha=$5
+  echo "ROLLBACK_STATE=STARTED"
+  systemctl stop "$SERVICE" || true
+  cp --preserve=mode,ownership,timestamps "$backup/jar/yakmogo-0.0.7-SNAPSHOT.jar" "$APP_JAR"
+  cp --preserve=mode,ownership,timestamps "$backup/systemd/yakmogo-enhancement.service" "$UNIT"
+  cp --preserve=mode,ownership,timestamps "$backup/runtime/start.sh" "$START_SCRIPT"
+  cp --preserve=mode,ownership,timestamps "$backup/secrets/yakmogo-enhancement.env" "$ENV_FILE"
+  systemctl daemon-reload
+  systemctl start "$SERVICE"
+  health_ready "$old_bundle" || die "rollback health check failed"
+  production_unchanged "$prod_pid" "$prod_sha" || die "production changed during rollback"
+  [[ $(sha256sum "$APP_JAR" | awk '{print $1}') == "$before_app_sha" ]] \
+    || die "rollback JAR checksum mismatch"
+  echo "ROLLBACK_STATE=CONFIRMED"
+}
+
+[[ -f $REQUEST && ! -L $REQUEST ]] || die "release request is missing or unsafe"
+install -d -o root -g root -m 0700 "$WORK_ROOT" "$BACKUP_ROOT"
+work_dir=$(mktemp -d "$WORK_ROOT/deploy.XXXXXX")
+cleanup() {
+  [[ $work_dir == "$WORK_ROOT"/deploy.* ]] || return 1
+  rm -rf -- "$work_dir"
+}
+trap cleanup EXIT
+install -o root -g root -m 0600 "$REQUEST" "$work_dir/request"
+rm -f "$REQUEST"
+
+backend_sha=$(manifest_value BACKEND_SHA "$work_dir/request")
+mode=$(manifest_value MODE "$work_dir/request")
+[[ $backend_sha =~ ^[0-9a-f]{40}$ ]] || die "invalid backend SHA"
+[[ $mode == deploy || $mode == rollback-probe ]] || die "invalid deploy mode"
+
+release_dir=$INCOMING_ROOT/$backend_sha
+[[ -d $release_dir && ! -L $release_dir ]] || die "release directory is missing or unsafe"
+manifest=$release_dir/release-manifest.txt
+[[ -f $manifest && ! -L $manifest ]] || die "release manifest is missing or unsafe"
+install -o root -g root -m 0600 "$manifest" "$work_dir/release-manifest.txt"
+
+manifest_backend_sha=$(manifest_value BACKEND_SHA "$work_dir/release-manifest.txt")
+web_sha=$(manifest_value WEB_SHA "$work_dir/release-manifest.txt")
+jar_name=$(manifest_value JAR_NAME "$work_dir/release-manifest.txt")
+expected_sha=$(manifest_value JAR_SHA256 "$work_dir/release-manifest.txt")
+expected_bundle=$(manifest_value JS_BUNDLE "$work_dir/release-manifest.txt")
+
+[[ $manifest_backend_sha == "$backend_sha" ]] || die "request and manifest SHA differ"
+[[ $web_sha =~ ^[0-9a-f]{40}$ ]] || die "invalid web SHA"
+[[ $jar_name == "yakmogo-enhancement-${backend_sha}.jar" ]] || die "invalid JAR name"
+[[ $expected_sha =~ ^[0-9a-f]{64}$ ]] || die "invalid JAR checksum"
+[[ $expected_bundle =~ ^/assets/[A-Za-z0-9_-]+\.js$ ]] || die "invalid JavaScript bundle path"
+
+candidate=$release_dir/$jar_name
+checksum_file=$release_dir/$jar_name.sha256
+[[ -f $candidate && ! -L $candidate ]] || die "candidate JAR is missing or unsafe"
+[[ -f $checksum_file && ! -L $checksum_file ]] || die "checksum file is missing or unsafe"
+install -o root -g root -m 0600 "$candidate" "$work_dir/candidate.jar"
+install -o root -g root -m 0600 "$checksum_file" "$work_dir/candidate.jar.sha256"
+
+read -r checksum_value checksum_name checksum_extra < "$work_dir/candidate.jar.sha256"
+checksum_name=${checksum_name#\*}
+[[ -z ${checksum_extra:-} && $checksum_value =~ ^[0-9a-f]{64}$ && $checksum_name == "$jar_name" ]] \
+  || die "checksum file format or filename mismatch"
+[[ $checksum_value == "$expected_sha" ]] || die "manifest and checksum file differ"
+actual_sha=$(sha256sum "$work_dir/candidate.jar" | awk '{print $1}')
+[[ $actual_sha == "$expected_sha" ]] || die "candidate checksum mismatch"
+
+unzip -p "$work_dir/candidate.jar" BOOT-INF/classes/application-enhancement.yml \
+  > "$work_dir/application-enhancement.yml"
+grep -q 'port: 8081' "$work_dir/application-enhancement.yml" || die "candidate port is not 8081"
+grep -q 'yakmogo_enhancement' "$work_dir/application-enhancement.yml" || die "candidate DB is not enhancement"
+[[ $(grep -c 'enabled: false' "$work_dir/application-enhancement.yml") -ge 2 ]] \
+  || die "candidate bot or scheduler safety setting is missing"
+unzip -Z1 "$work_dir/candidate.jar" | grep -Fxq "BOOT-INF/classes/static${expected_bundle}" \
+  || die "expected JavaScript bundle is missing from candidate"
+
+old_index=$work_dir/old-index.html
+unzip -p "$APP_JAR" BOOT-INF/classes/static/index.html > "$old_index"
+old_bundle=$(grep -oE '/assets/[A-Za-z0-9_-]+\.js' "$old_index" | head -n 1)
+[[ $old_bundle =~ ^/assets/[A-Za-z0-9_-]+\.js$ ]] || die "current JAR bundle cannot be determined"
+
+prod_pid=$(systemctl show -p MainPID --value "$PROD_SERVICE")
+prod_sha=$(sha256sum "$PROD_JAR" | awk '{print $1}')
+before_app_sha=$(sha256sum "$APP_JAR" | awk '{print $1}')
+production_unchanged "$prod_pid" "$prod_sha" || die "production baseline is not healthy"
+
+timestamp=$(date +%Y%m%d-%H%M%S-%N)
+backup=$BACKUP_ROOT/${timestamp}-${backend_sha}
+install -d -o root -g root -m 0700 \
+  "$backup/jar" "$backup/systemd" "$backup/runtime" "$backup/secrets"
+cp --preserve=mode,ownership,timestamps "$APP_JAR" "$backup/jar/"
+cp --preserve=mode,ownership,timestamps "$UNIT" "$backup/systemd/"
+cp --preserve=mode,ownership,timestamps "$START_SCRIPT" "$backup/runtime/"
+cp --preserve=mode,ownership,timestamps "$ENV_FILE" "$backup/secrets/"
+chmod 0600 "$backup/secrets/yakmogo-enhancement.env"
+install -o root -g root -m 0600 "$work_dir/release-manifest.txt" "$backup/release-manifest.txt"
+printf 'STATE=BACKED_UP\nMODE=%s\nBEFORE_APP_SHA=%s\n' "$mode" "$before_app_sha" \
+  > "$backup/deployment-result.txt"
+chmod 0600 "$backup/deployment-result.txt"
+
+health_bundle=$expected_bundle
+effective_sha=$actual_sha
+if [[ $mode == rollback-probe ]]; then
+  printf 'Goal 8 rollback probe\n' >> "$work_dir/candidate.jar"
+  effective_sha=$(sha256sum "$work_dir/candidate.jar" | awk '{print $1}')
+  [[ $effective_sha != "$before_app_sha" ]] || die "rollback probe did not change candidate"
+  health_bundle=/assets/__goal8_rollback_probe_missing__.js
+fi
+
+apply_candidate() {
+  systemctl stop "$SERVICE" || return 1
+  install -o pi -g pi -m 0640 "$work_dir/candidate.jar" "$APP_JAR" || return 1
+  systemctl start "$SERVICE" || return 1
+  health_ready "$health_bundle" || return 1
+  production_unchanged "$prod_pid" "$prod_sha" || return 1
+  [[ $(sha256sum "$APP_JAR" | awk '{print $1}') == "$effective_sha" ]] || return 1
+}
+
+if ! apply_candidate; then
+  restore_backup "$backup" "$old_bundle" "$prod_pid" "$prod_sha" "$before_app_sha"
+  if [[ $mode == rollback-probe ]]; then
+    printf 'STATE=ROLLBACK_PROBE_CONFIRMED\nMODE=%s\nBEFORE_APP_SHA=%s\nPROBE_SHA=%s\n' \
+      "$mode" "$before_app_sha" "$effective_sha" > "$backup/deployment-result.txt"
+    chmod 0600 "$backup/deployment-result.txt"
+    echo "DEPLOY_RESULT=ROLLBACK_PROBE_CONFIRMED"
+    echo "BACKUP=$backup"
+    exit 0
+  fi
+  printf 'STATE=ROLLED_BACK\nMODE=%s\nBEFORE_APP_SHA=%s\nFAILED_SHA=%s\n' \
+    "$mode" "$before_app_sha" "$effective_sha" > "$backup/deployment-result.txt"
+  chmod 0600 "$backup/deployment-result.txt"
+  echo "DEPLOY_RESULT=ROLLED_BACK" >&2
+  echo "BACKUP=$backup" >&2
+  exit 1
+fi
+
+if [[ $mode == rollback-probe ]]; then
+  restore_backup "$backup" "$old_bundle" "$prod_pid" "$prod_sha" "$before_app_sha"
+  die "rollback probe unexpectedly passed its failing health check"
+fi
+
+printf 'STATE=DEPLOYED\nMODE=%s\nBEFORE_APP_SHA=%s\nDEPLOYED_SHA=%s\n' \
+  "$mode" "$before_app_sha" "$effective_sha" > "$backup/deployment-result.txt"
+chmod 0600 "$backup/deployment-result.txt"
+echo "DEPLOY_RESULT=SUCCESS"
+echo "BACKUP=$backup"
+echo "DEPLOYED_SHA=$effective_sha"
+echo "BACKEND_SHA=$backend_sha"
+echo "WEB_SHA=$web_sha"

@@ -346,3 +346,17 @@ mktemp: command not found
 ### 배운 점
 
 CI shell script 실패도 애플리케이션 실패와 마찬가지로 명령 부재, sandbox 차단, 스크립트 논리를 분리해 봐야 한다.
+
+## 사례 9: 배포 서버에 JDK의 `jar` 도구가 없음
+
+### 증상
+
+Raspberry Pi에는 Java 애플리케이션 실행 환경과 `unzip`은 있지만 JDK 명령인 `jar`는 설치되어 있지 않았다. 초기 root helper는 후보 목록 검사와 rollback probe 생성에 `jar tf`, `jar uf`를 사용했다.
+
+### 판단과 해결
+
+배포 하나를 위해 서버에 JDK 전체를 추가하지 않았다. ZIP 형식인 실행 JAR의 목록은 이미 설치된 `unzip -Z1`로 확인한다. rollback probe는 정상 후보 끝에 무해한 marker bytes를 붙여 checksum만 바꾸고, 존재하지 않는 JS bundle을 readiness 조건으로 사용해 교체 후 실패와 복원을 실제로 통과시킨다.
+
+### 배운 점
+
+CI 머신에 있는 개발 도구가 배포 서버에도 있다고 가정하면 안 된다. 서버 의존성을 먼저 조사하고 이미 있는 표준 도구로 같은 안전 계약을 만족시킬 수 있는지 확인한다.
