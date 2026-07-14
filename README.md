@@ -18,6 +18,37 @@
 * **로컬망 중심 설계:** 관리자 페이지는 홈 네트워크(로컬) 내부에서 수행하며, 알림은 텔레그램 API(Outbound)를 통해 외부로 전송됩니다.
 * **보안 주의:** 민감 정보(DB 비번, 토큰 등)는 환경변수 및 실행 파라미터(`-D`)로 주입합니다.
 
+## 📌 실행 환경 요구사항
+
+- **Java 21 Runtime** (OpenJDK 21 권장)
+  - 본 프로젝트는 **Build-Jdk-Spec 21** 기준으로 빌드되었습니다.
+  - Java 17 이하에서는 실행되지 않을 수 있습니다.
+- **MariaDB**
+- **Node.js + npm** (프론트엔드 빌드 시)
+---
+
+## 📌 MariaDB 초기 설정
+
+약모고는 MariaDB의 `yakmogo` 데이터베이스와 `yakmogo_user` 계정을 사용합니다.
+
+```sql
+CREATE DATABASE yakmogo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'yakmogo_user'@'localhost' IDENTIFIED BY 'DB비밀번호';
+
+GRANT ALL PRIVILEGES ON yakmogo.* TO 'yakmogo_user'@'localhost';
+
+FLUSH PRIVILEGES;
+```
+
+`DB비밀번호`는 서버 실행 시 전달하는 `YAKMOGO_DB_PASSWORD` 값과 동일해야 합니다.
+
+```bash
+-DYAKMOGO_DB_PASSWORD=DB비밀번호
+```
+
+JPA 설정은 `ddl-auto: update`이므로, 데이터베이스와 계정만 준비되어 있으면 필요한 테이블은 애플리케이션 실행 시 자동으로 생성/갱신됩니다.
+
 ---
 
 ## 🚀 배포 및 설치 가이드 (라즈베리파이 기준)
