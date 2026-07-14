@@ -20,26 +20,38 @@ sed -i \
 chmod 600 .env
 chmod +x ./*.sh
 
+phase=setup
 cleanup() {
+  status=$?
+  if [[ $status -ne 0 ]]; then
+    echo "::error title=Portable integration failure::failed phase: $phase"
+  fi
   docker compose --project-directory "$work_dir" --env-file .env -f compose.yml \
     down --volumes --remove-orphans >/dev/null 2>&1 || true
   rm -rf "$work_dir"
+  exit "$status"
 }
 trap cleanup EXIT
 
+phase=fresh-install
 ./install.sh
+phase=create-probe
 docker compose --env-file .env -f compose.yml exec -T yakmogo-mariadb sh -c \
   'MARIADB_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -uroot "$MARIADB_DATABASE" -e "CREATE TABLE portable_restore_probe (id INT PRIMARY KEY); INSERT INTO portable_restore_probe VALUES (1)"'
+phase=backup
 backup_output=$(./backup.sh "$work_dir/saved-backup")
 backup_file=${backup_output#BACKUP_FILE=}
 
+phase=restore-install
 docker compose --env-file .env -f compose.yml down --volumes
 ./install.sh "$backup_file"
+phase=verify-restore
 probe_count=$(docker compose --env-file .env -f compose.yml exec -T yakmogo-mariadb sh -c \
   'MARIADB_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -N -B -uroot "$MARIADB_DATABASE" -e "SELECT COUNT(*) FROM portable_restore_probe"' \
   | tr -d '\r')
 [[ $probe_count == 1 ]] || { echo "portable restore verification failed" >&2; exit 1; }
 
+phase=prepare-broken-update
 docker tag mariadb:11.8 yakmogo:broken-test
 docker save --output "$work_dir/yakmogo-broken-test-linux-arm64.tar" yakmogo:broken-test
 broken_sha=$(sha256sum "$work_dir/yakmogo-broken-test-linux-arm64.tar" | awk '{print $1}')
@@ -49,6 +61,7 @@ IMAGE_TAR=yakmogo-broken-test-linux-arm64.tar
 IMAGE_TAR_SHA256=$broken_sha
 JS_BUNDLE=/assets/broken.js
 EOF
+phase=verify-update-rollback
 if ./update.sh "$work_dir/yakmogo-broken-test-linux-arm64.tar"; then
   echo "broken update unexpectedly succeeded" >&2
   exit 1
@@ -56,4 +69,5 @@ fi
 [[ $(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18081/) == 200 ]] \
   || { echo "rollback did not restore the application" >&2; exit 1; }
 
+phase=complete
 echo "Portable install, restore, and update rollback verification passed"
