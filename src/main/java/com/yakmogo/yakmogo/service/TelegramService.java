@@ -1,5 +1,6 @@
 package com.yakmogo.yakmogo.service;
 
+import com.yakmogo.yakmogo.auth.AuthTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +21,7 @@ public class TelegramService {
 	@Value("${app.frontend.url}")
 	private String frontendUrl;
 
+	private final AuthTokenService authTokenService;
 	private final RestTemplate restTemplate = new RestTemplate();
 
 	// 기존 텍스트 전송 (버튼 없음)
@@ -54,7 +56,8 @@ public class TelegramService {
 	}
 
 	private String createInlineKeyboard(Long logId, String guardianChatId) {
-		String magicLink = frontendUrl + "/tg-login?chatId=" + guardianChatId;
+		String loginProof = authTokenService.issueLoginProof(guardianChatId);
+		String magicLink = frontendUrl + "/tg-login?proof=" + loginProof;
 
 		// 말풍선 밑에 달릴 인라인 버튼 JSON 형태
 		// callback_data에 "TAKEN_15" 처럼 복용기록 ID를 심어둠

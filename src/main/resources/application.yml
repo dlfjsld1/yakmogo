@@ -30,6 +30,12 @@ telegram:
 admin:
   password: ${ADMIN_PASSWORD}
 
+auth:
+  token:
+    secret: ${AUTH_TOKEN_SECRET}
+    ttl-seconds: ${AUTH_TOKEN_TTL_SECONDS:3600}
+    login-proof-ttl-seconds: ${AUTH_LOGIN_PROOF_TTL_SECONDS:300}
+
 # 5. 프론트엔드 도메인 설정
 app:
   frontend:

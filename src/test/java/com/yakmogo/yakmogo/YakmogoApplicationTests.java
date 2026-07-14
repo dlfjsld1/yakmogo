@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 	"telegram.bot.username=test-bot",
 	"telegram.bot.chat-id=test-chat",
 	"admin.password=test-admin",
+	"auth.token.secret=test-auth-secret-with-at-least-32-bytes",
 	"app.frontend.url=http://localhost"
 })
 class YakmogoApplicationTests {

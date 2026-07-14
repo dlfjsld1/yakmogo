@@ -3,6 +3,7 @@ package com.yakmogo.yakmogo.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.yakmogo.yakmogo.auth.AuthorizationService;
 import com.yakmogo.yakmogo.domain.IntakeLog;
 import com.yakmogo.yakmogo.domain.IntakeStatus;
 import com.yakmogo.yakmogo.repository.IntakeLogRepository;
@@ -14,12 +15,14 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class IntakeLogService {
 	private final IntakeLogRepository intakeLogRepository;
+	private final AuthorizationService authorizationService;
 
 	// 약 복용 처리
 	public void markAsTaken(Long logId) {
 		// 기록 검색
 		IntakeLog log = intakeLogRepository.findById(logId)
 			.orElseThrow(() -> new IllegalArgumentException("해당 기록이 없습니다. ID=" + logId));
+		authorizationService.requireUserAccess(log.getUser().getId());
 
 		// 중복 체크
 		if (log.getStatus() == IntakeStatus.TAKEN) {

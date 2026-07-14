@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import com.yakmogo.yakmogo.auth.AuthorizationService;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,9 +29,11 @@ public class MedicineGroupService {
 	private final MedicineGroupRepository medicineGroupRepository;
 	private final UserRepository userRepository;
 	private final IntakeLogRepository intakeLogRepository;
+	private final AuthorizationService authorizationService;
 
 	//약 등록
 	public Long register(Long userId, MedicineRequest request) {
+		authorizationService.requireUserAccess(userId);
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalArgumentException("없는 유저입니다."));
 
@@ -90,6 +94,7 @@ public class MedicineGroupService {
 	public void delete(Long groupId) {
 		MedicineGroup group = medicineGroupRepository.findById(groupId)
 			.orElseThrow(() -> new IllegalArgumentException("해당 약이 없습니다."));
+		authorizationService.requireUserAccess(group.getUser().getId());
 
 		if (!group.isActive()) {
 			throw new IllegalArgumentException("이미 복용 중단된 약입니다.");
@@ -107,6 +112,7 @@ public class MedicineGroupService {
 	public void update(Long groupId, MedicineRequest request) {
 		MedicineGroup group = medicineGroupRepository.findById(groupId)
 			.orElseThrow(() -> new IllegalArgumentException("해당 약이 없습니다."));
+		authorizationService.requireUserAccess(group.getUser().getId());
 
 		// 정보 업데이트
 		group.updateInfo(
@@ -122,6 +128,7 @@ public class MedicineGroupService {
 
 	// 특정 유저의 약 목록 가져오기
 	public List<MedicineGroup> getMedicines(Long userId) {
+		authorizationService.requireUserAccess(userId);
 		return medicineGroupRepository.findAllByUserIdAndIsActiveTrue(userId);
 	}
 
