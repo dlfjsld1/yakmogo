@@ -15,7 +15,7 @@ if [[ -f $dump_file.sha256 ]]; then
   (cd "$(dirname "$dump_file")" && sha256sum --check "$(basename "$dump_file").sha256")
 fi
 
-table_count=$(compose exec -T -e "MARIADB_PWD=$root_password" yakmogo-mariadb \
+table_count=$(compose exec -T -e "MYSQL_PWD=$root_password" yakmogo-mariadb \
   mariadb -N -B -uroot "$database" \
   -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()' \
   | tr -d '\r')
@@ -26,7 +26,7 @@ if [[ $dump_file == *.gz ]]; then
   gzip -dc "$dump_file"
 else
   cat "$dump_file"
-fi | compose exec -T -e "MARIADB_PWD=$root_password" yakmogo-mariadb \
+fi | compose exec -T -e "MYSQL_PWD=$root_password" yakmogo-mariadb \
   mariadb -uroot "$database"
 
 echo "RESTORE_RESULT=SUCCESS"

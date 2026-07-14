@@ -37,7 +37,7 @@ phase=fresh-install
 ./install.sh
 phase=create-probe
 if ! probe_output=$(docker compose --env-file .env -f compose.yml exec -T \
-  -e MARIADB_PWD=ci-database-password yakmogo-mariadb \
+  -e MYSQL_PWD=ci-database-password yakmogo-mariadb \
   mariadb -uyakmogo_app yakmogo \
   -e 'CREATE TABLE portable_restore_probe (id INT PRIMARY KEY); INSERT INTO portable_restore_probe VALUES (1)' \
   2>&1); then
@@ -56,7 +56,7 @@ docker compose --env-file .env -f compose.yml down --volumes
 ./install.sh "$backup_file"
 phase=verify-restore
 probe_count=$(docker compose --env-file .env -f compose.yml exec -T \
-  -e MARIADB_PWD=ci-database-password yakmogo-mariadb \
+  -e MYSQL_PWD=ci-database-password yakmogo-mariadb \
   mariadb -N -B -uyakmogo_app yakmogo -e 'SELECT COUNT(*) FROM portable_restore_probe' \
   | tr -d '\r')
 [[ $probe_count == 1 ]] || { echo "portable restore verification failed" >&2; exit 1; }

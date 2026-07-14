@@ -20,7 +20,7 @@ umask 077
 cleanup() { rm -f "$tmp_file"; }
 trap cleanup EXIT
 
-compose exec -T -e "MARIADB_PWD=$root_password" yakmogo-mariadb \
+compose exec -T -e "MYSQL_PWD=$root_password" yakmogo-mariadb \
   mariadb-dump --single-transaction --routines --triggers -uroot "$database" \
   | gzip -9 > "$tmp_file"
 gzip -t "$tmp_file"
