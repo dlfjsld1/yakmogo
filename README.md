@@ -12,6 +12,7 @@
 - [배포와 런타임 트러블슈팅](docs/troubleshooting/deployment-and-runtime.md)
 - [CI/CD 트러블슈팅](docs/troubleshooting/ci-cd.md)
 - [알림 전달과 재시도 트러블슈팅](docs/troubleshooting/notification-reliability.md)
+- [8081 CI/CD 배포 런북](docs/runbooks/enhancement-cicd.md)
 
 ## 📌 텔레그램 봇 설정 방법
 

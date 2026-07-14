@@ -1,0 +1,124 @@
+name: Enhancement Release Candidate
+
+on:
+  push:
+    branches:
+      - enhancement
+
+permissions:
+  contents: read
+
+concurrency:
+  group: enhancement-release
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    if: github.ref == 'refs/heads/enhancement'
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-password
+          MARIADB_DATABASE: yakmogo_test
+          MARIADB_USER: yakmogo_test
+          MARIADB_PASSWORD: test-database-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost -uroot -ptest-root-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MARIADB_TEST_URL: jdbc:mariadb://127.0.0.1:3306/yakmogo_test
+      MARIADB_TEST_USER: yakmogo_test
+      MARIADB_TEST_PASSWORD: test-database-password
+    steps:
+      - name: Check out backend enhancement
+        uses: actions/checkout@v4
+
+      - name: Check out web enhancement
+        uses: actions/checkout@v4
+        with:
+          repository: dlfjsld1/yakmogo-web
+          ref: enhancement
+          path: yakmogo-web
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: yakmogo-web/package-lock.json
+
+      - name: Verify web
+        working-directory: yakmogo-web
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+
+      - name: Build and verify integrated JAR
+        run: |
+          chmod +x scripts/ci/*.sh gradlew
+          WEB_SHA=$(git -C yakmogo-web rev-parse HEAD) \
+            scripts/ci/build-release-candidate.sh yakmogo-web/dist
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: yakmogo-enhancement-${{ github.sha }}
+          path: |
+            build/release/*.jar
+            build/release/*.sha256
+            build/release/release-manifest.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: assemble
+    if: >-
+      github.repository == 'dlfjsld1/yakmogo' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/enhancement'
+    runs-on: [self-hosted, Linux, ARM64, yakmogo-enhancement]
+    environment: enhancement
+    steps:
+      - name: Download verified release candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: yakmogo-enhancement-${{ github.sha }}
+          path: release-artifact
+
+      - name: Verify downloaded checksum
+        working-directory: release-artifact
+        run: sha256sum --check yakmogo-enhancement-${{ github.sha }}.jar.sha256
+
+      - name: Stage release request
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="/var/lib/yakmogo-deploy/incoming/${GITHUB_SHA}"
+          install -d -m 0750 "$release_dir"
+          install -m 0640 \
+            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}.jar" \
+            "release-artifact/yakmogo-enhancement-${GITHUB_SHA}.jar.sha256" \
+            "release-artifact/release-manifest.txt" \
+            "$release_dir/"
+          request_tmp=$(mktemp /var/lib/yakmogo-deploy/incoming/request.XXXXXX)
+          printf 'BACKEND_SHA=%s\nMODE=deploy\n' "$GITHUB_SHA" > "$request_tmp"
+          chmod 0640 "$request_tmp"
+          mv -f "$request_tmp" /var/lib/yakmogo-deploy/incoming/request
+
+      - name: Deploy only enhancement 8081
+        run: sudo /usr/local/sbin/yakmogo-enhancement-deploy
