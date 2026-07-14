@@ -17,6 +17,25 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-password
+          MARIADB_DATABASE: yakmogo_test
+          MARIADB_USER: yakmogo_test
+          MARIADB_PASSWORD: test-database-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost -uroot -ptest-root-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MARIADB_TEST_URL: jdbc:mariadb://127.0.0.1:3306/yakmogo_test
+      MARIADB_TEST_USER: yakmogo_test
+      MARIADB_TEST_PASSWORD: test-database-password
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -32,3 +51,11 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew clean test bootJar --no-daemon
+
+      - name: Confirm MariaDB migration test ran
+        shell: bash
+        run: |
+          report="build/test-results/test/TEST-com.yakmogo.yakmogo.migration.FlywayMariaDbIntegrationTest.xml"
+          test -f "$report"
+          grep -q 'tests="1"' "$report"
+          grep -q 'skipped="0"' "$report"
