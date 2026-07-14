@@ -1,6 +1,6 @@
 # 8081 CI/CD 배포 런북
 
-> 현재 상태: 설계 및 로컬 release candidate 검증 완료. SSH credential 연결과 원격 자동 배포는 사용자 승인 전 비활성이다.
+> 현재 상태: 설계 및 로컬 release candidate 검증 완료. Self-hosted runner 등록과 로컬 자동 배포는 사용자 승인 전 비활성이다.
 
 ## 목적과 안전 경계
 
@@ -23,7 +23,7 @@
 | `build-release-candidate.sh` | 통합 JAR과 checksum 생성 |
 | `verify-integrated-jar.sh` | SPA와 enhancement profile 계약 검사 |
 | GitHub artifact | 7일 동안 JAR·checksum·manifest 보관 |
-| CI 전용 SSH 사용자 | staging upload와 고정 deploy helper 호출만 수행 |
+| Pi self-hosted runner | GitHub artifact를 outbound로 받아 staging에 배치 |
 | root deploy helper | backup, 8081 교체·재시작·health·rollback |
 
 ## 승인 전 준비된 명령
@@ -52,14 +52,25 @@ build/release/yakmogo-enhancement-<sha>.jar.sha256
 
 다음은 계획이며 아직 실행하지 않았다.
 
-1. login shell이 제한된 CI 전용 사용자 생성
-2. `/var/lib/yakmogo-deploy/incoming`을 전용 사용자 쓰기, root 읽기 구조로 생성
-3. `/usr/local/sbin/yakmogo-enhancement-deploy`를 root:root 755로 설치
-4. 정확한 helper 경로만 허용하는 sudoers 파일을 root:root 440으로 설치
-5. CI public key를 전용 사용자의 `authorized_keys`에 등록
-6. Raspberry Pi host public key fingerprint를 별도 경로로 확인해 GitHub secret에 등록
+1. 전용 `yakmogo-runner` 사용자 생성
+2. 공식 Linux ARM64 GitHub Actions runner를 `/var/lib/yakmogo-runner`에 설치
+3. repository runner로 등록하고 `yakmogo-enhancement` 전용 label 부여
+4. runner를 전용 systemd service로 설치하되 애플리케이션 환경파일 읽기 권한은 부여하지 않음
+5. `/var/lib/yakmogo-deploy/incoming`을 runner 쓰기, root 읽기 구조로 생성
+6. `/usr/local/sbin/yakmogo-enhancement-deploy`를 root:root 755로 설치
+7. 정확한 helper 경로만 허용하는 sudoers 파일을 root:root 440으로 설치
 
-일반 shell 전체와 임의 `systemctl`, 임의 파일 경로를 sudoers에 허용하지 않는다.
+일반 shell 전체와 임의 `systemctl`, 임의 파일 경로를 sudoers에 허용하지 않는다. runner 등록 token은 설치 순간에만 사용하고 파일·workflow secret·문서에 저장하지 않는다.
+
+## 네트워크 흐름
+
+```text
+GitHub-hosted runner --HTTPS--> GitHub artifact
+Raspberry Pi runner --outbound HTTPS--> GitHub Actions
+Raspberry Pi runner --local sudo fixed helper--> 8081 files/systemd
+```
+
+공유기 port forwarding, public SSH, GitHub-hosted runner에서 LAN으로 들어오는 연결은 만들지 않는다.
 
 ## 배포 입력 검증
 
@@ -188,4 +199,3 @@ journalctl -u yakmogo-enhancement --since=-10min --no-pager
 - 적용 전 중복·용량·lock 위험을 검사한다.
 - DB backup과 restore rehearsal은 Goal 9 정책을 따른다.
 - 운영 DB에는 이 workflow가 연결되지 않는다.
-
