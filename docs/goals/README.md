@@ -32,3 +32,9 @@
 - 검토만 한 대안과 실제 실행했다가 실패한 접근을 구분한다.
 - 관련 트러블슈팅 문서와 서로 링크한다.
 - Android, Device, Pairing, FCM 등 2차 고도화 항목은 실제 구현하지 않은 경우 설계된 것처럼 쓰지 않는다.
+
+## 작성된 Goal 문서
+
+- [Goal 1: 품질 기반과 고도화 환경 격리](goal-01-quality-hardening.md)
+- [Goal 2: 인증·인가 강화](goal-02-auth-hardening.md)
+- [Goal 3: 런타임 설정과 비밀정보 분리](goal-03-runtime-config.md)

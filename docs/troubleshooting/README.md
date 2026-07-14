@@ -13,13 +13,14 @@
 ## 주제별 문서
 
 - [인증과 인가](authentication.md): 임의 토큰 허용, chatId 직접 로그인, HMAC 토큰 구현 과정
-- [배포와 런타임](deployment-and-runtime.md): 운영·고도화 환경 분리, 준비 상태 확인, 알림 격리
+- [배포와 런타임](deployment-and-runtime.md): 운영·고도화 환경 분리, 준비 상태 확인, 알림 격리, 비밀정보 분리
 - [CI/CD](ci-cd.md): 기본 CI 도입과 오래된 `origin/main` 기준선 문제
 
 ## Goal별 문서
 
 - [Goal 1: 품질 기반과 고도화 환경 격리](../goals/goal-01-quality-hardening.md)
 - [Goal 2: 인증·인가 강화](../goals/goal-02-auth-hardening.md)
+- [Goal 3: 런타임 설정과 비밀정보 분리](../goals/goal-03-runtime-config.md)
 
 ## 빠르게 찾는 법
 
