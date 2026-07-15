@@ -2,7 +2,7 @@
 
 ## 현재 상태
 
-**저장소 구현과 로컬 테스트 완료, 운영 설정 활성화 전 승인 대기.** Pi의 timer, Uptime Kuma, systemd, 실제 DB volume과 운영 서비스는 아직 변경하지 않았다.
+**저장소 구현과 GitHub-hosted ARM64 격리검증 완료, 운영 설정 활성화 전 승인 대기.** Pi의 timer, Uptime Kuma, systemd, 실제 DB volume과 운영 서비스는 아직 변경하지 않았다.
 
 ## 한 문장 요약
 
@@ -130,7 +130,9 @@ Kuma의 다른 5개 홈서버 monitor 설명은 비어 있지만 Yakmogo Goal의
 - health: `UP`, component 상세 없음
 - env·configprops·heapdump: Actuator handler에 매핑되지 않음
 - `git diff --check`: 성공
-- portable ARM64 통합검증: feature push 후 GitHub-hosted runner에서 확인 예정
+- Backend CI `29383786907`: 성공
+- Enhancement Release Candidate `29383786949`: 성공
+- ARM64 임시 Compose project에서 신규 설치, 오래된 백업 3개와 새 dump의 retention, 빈 volume 복원, update backup 분리와 고장 image rollback 성공
 
 ## 승인 후 실행할 작업
 
