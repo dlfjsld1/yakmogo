@@ -19,6 +19,7 @@
 - [API 검증과 복용 상태 전이](api-validation-and-state-transition.md): Bean Validation, orphan removal, 일정 계산, 동시 완료 잠금
 - [UI 테스트와 8081 배포](ui-testing-and-deployment.md): Vitest 격리, Windows 실행·인코딩, 통합 JAR, 브라우저 삭제 확인
 - [알림 전달과 재시도](notification-reliability.md): 전달 상태, backoff, 중복 방지, 날짜 경계, 실제 메시지 없는 검증
+- [관측·백업·복원](operations.md): Actuator와 SPA fallback 구분, 검증 후 보관 정리, backup 종류 분리
 
 ## Goal별 문서
 
@@ -31,6 +32,7 @@
 - [Goal 7: 알림 신뢰성 고도화](../goals/goal-07-notification-reliability.md) — 완료
 - [Goal 8: CI/CD와 8081 자동 배포·롤백](../goals/goal-08-ci-cd.md) — 완료
 - [Docker 전환: 8081 enhancement container](../goals/goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 배포 승인 대기
+- [Goal 9: 관측성·백업·복원](../goals/goal-09-operations.md) — 완료
 
 ## 빠르게 찾는 법
 

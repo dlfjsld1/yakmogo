@@ -69,6 +69,7 @@ jobs:
             deploy/cicd/yakmogo-enhancement-container-deploy
           scripts/ci/test-integrated-jar-verifier.sh
           scripts/ci/test-container-contract.sh
+          scripts/ci/test-portable-setup.sh deploy/portable
           grep -Fxq \
             'yakmogo-runner ALL=(root) NOPASSWD: /usr/local/sbin/yakmogo-enhancement-container-deploy' \
             deploy/cicd/yakmogo-enhancement-container-deploy.sudoers

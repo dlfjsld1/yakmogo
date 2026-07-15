@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.handler;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,6 +75,23 @@ class ApiIntegrationTests {
 
 	@Autowired
 	private AuthTokenService authTokenService;
+
+	@Test
+	void healthExposesOnlyOverallStatusAndKeepsSensitiveActuatorEndpointsClosed() throws Exception {
+		mockMvc.perform(get("/actuator/health"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("UP"))
+			.andExpect(jsonPath("$.components").doesNotExist());
+
+		mockMvc.perform(get("/actuator"))
+			.andExpect(handler().handlerType(SpaController.class));
+		mockMvc.perform(get("/actuator/env"))
+			.andExpect(handler().handlerType(SpaController.class));
+		mockMvc.perform(get("/actuator/configprops"))
+			.andExpect(handler().handlerType(SpaController.class));
+		mockMvc.perform(get("/actuator/heapdump"))
+			.andExpect(handler().handlerType(SpaController.class));
+	}
 
 	@Test
 	void userApiPreservesSuccessResponsesAndSeparates401403404And400() throws Exception {
