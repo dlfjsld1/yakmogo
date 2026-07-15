@@ -94,14 +94,13 @@ sudo ./remove-backup-timer.sh
 
 ## Uptime Kuma 계획
 
-Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor는 다음 두 개만 둔다.
+Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor는 사용자가 실제 이용하는 운영 endpoint 하나만 둔다.
 
 | 이름 | 대상 | 주기 | 정상 조건 |
 |---|---|---:|---|
-| `Yakmogo PROD 8080 Web` | `http://<PI_LAN_IP>:8080/` | 60초 | HTTP 200 |
-| `Yakmogo ENH 8081 Health` | `http://<PI_LAN_IP>:8081/actuator/health` | 60초 | HTTP 200, body status `UP` |
+| `Yakmogo` | `http://<PI_LAN_IP>:8080/` | 60초 | HTTP 200 |
 
-현재 운영 8080은 Actuator가 없는 이전 release이므로 루트 화면을 감시한다. Goal 10에서 새 release가 main과 8080에 승격된 뒤 health URL로 바꿀 수 있다.
+현재 운영 8080은 Actuator가 없는 이전 release이므로 루트 화면을 감시한다. 8081 enhancement는 release candidate 검증용이므로 Kuma에 추가하지 않는다. Goal 10에서 새 release가 main과 8080에 승격되면 기존 monitor 하나의 URL만 `/actuator/health`로 바꿔 이력과 알림 설정을 유지한다.
 
 설명에는 다음 내용을 넣는다.
 
@@ -113,7 +112,7 @@ Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor
 복구 문서: docs/runbooks/yakmogo-operations.md
 ```
 
-기존 `Yakmogo` monitor는 이름과 설명을 갱신해 재사용한다. 같은 8080 monitor를 새로 추가하지 않는다. 8081 health monitor만 새로 추가한다. GitHub Actions self-hosted runner는 기본 배포 경로에서 제외됐으므로 Kuma monitor를 추가하지 않는다.
+기존 `Yakmogo` monitor에 설명만 추가해 재사용한다. 8081 enhancement, MariaDB container와 GitHub Actions self-hosted runner에는 별도 Kuma monitor를 만들지 않는다. 운영 `/actuator/health`가 앱과 DB 연결을 함께 판단하므로 최종적으로도 Yakmogo monitor 하나면 충분하다.
 
 ## 장애 확인 순서
 
