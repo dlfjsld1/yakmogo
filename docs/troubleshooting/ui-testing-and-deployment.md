@@ -222,5 +222,3 @@ critical 0
 - 최종 브라우저 console error/warning 0건
 - E2E cleanup 뒤 `yakmogo_enhancement` 사용자 수 0
 - 운영 8080 active/HTTP 200, 재시작·파일·DB 변경 없음
-
-관련 Goal: [Goal 6: React 약 관리 UI·UX](../goals/goal-06-medicine-ui.md)

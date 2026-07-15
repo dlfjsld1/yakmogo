@@ -35,7 +35,7 @@ Telegram token과 Chat ID는 자동으로 알 수 없기 때문에 신규 설치
 
 초기 버전은 개발자가 직접 설계하고 구현했습니다. 실제 가족이 사용하면서 Telegram 푸시만으로는 복약 알림을 명확하게 인지하기 어렵다는 한계를 확인했고, 향후 Kotlin Android 앱으로 알림 경험을 확장할 수 있도록 기존 구조 전반을 고도화했습니다. 이 과정에서 중복 발송 방지, 전달 결과 기록, 재시도와 복약 상태 전이의 일관성을 기술적 신뢰성 과제로 함께 개선했습니다. Android 앱 자체와 Device, Pairing, FCM 기능은 이번 버전에 포함하지 않았으며 별도의 2차 개발 단계로 분리했습니다.
 
-고도화 버전은 AI 코딩 도구를 적극 활용하는 **바이브 코딩(vibe coding)** 방식으로 개발했습니다. AI가 생성한 결과를 그대로 배포한 것이 아니라, 개발자가 목표와 설계 방향을 결정하고 Goal별 브랜치에서 코드 검토, 자동 테스트, 문서화와 실제 MariaDB·ARM64 Linux 환경 검증을 거쳐 통합했습니다. Raspberry Pi는 지원 대상을 제한하는 전제가 아니라 ARM64 운영 인수시험 환경으로 사용했습니다.
+고도화 버전은 AI 코딩 도구를 적극 활용하는 **바이브 코딩(vibe coding)** 방식으로 개발했습니다. AI가 생성한 결과를 그대로 배포한 것이 아니라, 개발자가 목표와 설계 방향을 결정하고 기능별 브랜치에서 코드 검토, 자동 테스트, 문서화와 실제 MariaDB·ARM64 Linux 환경 검증을 거쳐 통합했습니다. Raspberry Pi는 지원 대상을 제한하는 전제가 아니라 ARM64 운영 인수시험 환경으로 사용했습니다.
 
 ## 주요 고도화 내용
 
@@ -51,7 +51,7 @@ Telegram token과 Chat ID는 자동으로 알 수 없기 때문에 신규 설치
 - 제한된 health endpoint, 월간 논리 백업, checksum 검증과 update rollback 절차 추가
 - Android가 추가되어도 Telegram 전용 로직에 묶이지 않도록 상태 전이·인증·알림 경계 정리
 
-상세한 설계 결정과 시행착오는 [Goal별 기록](docs/goals/README.md), 후속 Android 계획은 [Android 2차 개발 로드맵](docs/roadmaps/android-phase-2.md)에 정리되어 있습니다.
+후속 Android 계획은 [Android 2차 개발 로드맵](docs/roadmaps/android-phase-2.md)에 정리되어 있습니다.
 
 ## 구성
 
@@ -92,7 +92,6 @@ Telegram token과 Chat ID는 자동으로 알 수 없기 때문에 신규 설치
 
 ## 문서
 
-- [Goal별 설계·변경·검증 기록](docs/goals/README.md)
 - [시행착오 및 트러블슈팅](docs/troubleshooting/README.md)
 - [운영·백업·복원 런북](docs/runbooks/yakmogo-operations.md)
 - [CI/CD 트러블슈팅](docs/troubleshooting/ci-cd.md)
