@@ -46,6 +46,8 @@
 - [Docker 전환: 8081 enhancement container](goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 CD 기본 경로 철회
 - [Docker D: 단일 명령 설치와 수동 업데이트](goal-docker-portable-install.md) — 완료
 - [Goal 9: 관측성·백업·복원](goal-09-operations.md) — 완료
+- [Goal 10: 전체 검증과 main 승격](goal-10-release-readiness.md) — main 보존·승격 준비
+- [Android 2차 개발 로드맵](../roadmaps/android-phase-2.md) — 1차 고도화 후속 계획
 
 ## Goal 1~10 실행 프롬프트
 
