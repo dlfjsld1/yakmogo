@@ -5,6 +5,7 @@ on:
     branches:
       - enhancement
       - feature/docker-enhancement
+      - feature/operations
   workflow_dispatch:
 
 permissions:

@@ -22,7 +22,7 @@ cp "$PORTABLE_DIR/current-release-manifest.txt" "$previous_manifest"
 cleanup() { rm -f "$previous_env" "$previous_manifest"; }
 trap cleanup EXIT
 
-backup_output=$("$PORTABLE_DIR/backup.sh")
+backup_output=$("$PORTABLE_DIR/backup.sh" "$PORTABLE_DIR/backups/update")
 docker load --input "$image_tar" >/dev/null
 set_env_value YAKMOGO_IMAGE "$image_ref"
 

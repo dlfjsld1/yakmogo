@@ -48,8 +48,19 @@ if ! probe_output=$(docker compose --env-file .env -f compose.yml exec -T \
   exit 1
 fi
 phase=backup
+mkdir -p "$work_dir/saved-backup"
+for old_timestamp in 20260101T000000Z 20260201T000000Z 20260301T000000Z; do
+  old_file="$work_dir/saved-backup/yakmogo-db-$old_timestamp.sql.gz"
+  printf 'old test backup %s\n' "$old_timestamp" | gzip -9 > "$old_file"
+  (cd "$work_dir/saved-backup" && sha256sum "$(basename "$old_file")" > "$(basename "$old_file").sha256")
+done
 backup_output=$(./backup.sh "$work_dir/saved-backup")
-backup_file=${backup_output#BACKUP_FILE=}
+backup_file=$(printf '%s\n' "$backup_output" | sed -n 's/^BACKUP_FILE=//p')
+[[ -f $backup_file && -f $backup_file.sha256 ]] || { echo "verified backup pair is missing" >&2; exit 1; }
+[[ $(find "$work_dir/saved-backup" -maxdepth 1 -type f -name 'yakmogo-db-*.sql.gz' | wc -l) == 3 ]] \
+  || { echo "backup retention did not keep exactly three files" >&2; exit 1; }
+[[ ! -e $work_dir/saved-backup/yakmogo-db-20260101T000000Z.sql.gz ]] \
+  || { echo "backup retention did not remove the oldest file" >&2; exit 1; }
 
 phase=restore-install
 docker compose --env-file .env -f compose.yml down --volumes
@@ -76,6 +87,8 @@ if ./update.sh "$work_dir/yakmogo-broken-test-linux-arm64.tar"; then
   echo "broken update unexpectedly succeeded" >&2
   exit 1
 fi
+[[ $(find "$work_dir/backups/update" -maxdepth 1 -type f -name 'yakmogo-db-*.sql.gz' | wc -l) == 1 ]] \
+  || { echo "update backup was not separated from scheduled backups" >&2; exit 1; }
 [[ $(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18081/) == 200 ]] \
   || { echo "rollback did not restore the application" >&2; exit 1; }
 

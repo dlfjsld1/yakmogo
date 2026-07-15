@@ -28,7 +28,33 @@ chmod 600 .env
 ./update.sh /안전한/경로/yakmogo-새버전-linux-arm64.tar
 ```
 
-업데이트는 먼저 DB를 백업하고 이미지 체크섬을 확인한다. 새 앱의 화면, 정적 파일, 인증 보호 API가 정상인지 확인하지 못하면 직전 이미지로 자동 복귀한다. DB 마이그레이션 자체를 역변환하지는 않으므로 중요한 업데이트 전에는 생성된 백업 파일을 별도 저장소에도 복사한다.
+백업은 SQL dump와 같은 이름의 SHA-256 파일을 만든 뒤 둘을 다시 검증한다. 같은 백업 폴더에서 검증된 dump가 3개를 초과할 때만 가장 오래된 dump와 checksum을 삭제한다. 새 백업이 실패하면 기존 파일은 지우지 않는다. 동시에 두 백업이 실행되지 않도록 파일 잠금을 사용한다.
+
+정기 백업은 `backups/scheduled`, 업데이트 직전 백업은 `backups/update`에 분리한다. 매월 1일 03:35(한국 시간) 정기 백업을 등록하려면 설치 사용자를 명시해 다음 명령을 한 번 실행한다. 이 명령은 systemd unit을 변경하므로 실제 서버에서는 검토와 승인 후 실행한다.
+
+```bash
+sudo ./install-backup-timer.sh pi
+systemctl list-timers yakmogo-backup.timer
+journalctl -u yakmogo-backup.service
+```
+
+정기 백업 설정만 제거하고 기존 dump는 보존하려면 다음을 실행한다.
+
+```bash
+sudo ./remove-backup-timer.sh
+```
+
+업데이트는 먼저 전용 폴더에 DB를 백업하고 image checksum을 확인한다. 새 앱의 화면, 정적 파일, 인증 보호 API가 정상인지 확인하지 못하면 직전 image로 자동 복귀한다. DB migration 자체를 역변환하지는 않으므로 중요한 업데이트 전에는 생성된 백업 파일을 별도 저장소에도 복사한다.
+
+## 상태 확인
+
+`/actuator/health`는 애플리케이션과 DB 연결을 합친 전체 상태만 `UP` 또는 `DOWN`으로 반환한다. component 상세, 환경변수, 설정값과 heap dump endpoint는 공개하지 않는다.
+
+```bash
+curl -i http://127.0.0.1:8080/actuator/health
+docker compose --env-file .env -f compose.yml ps
+df -h .
+```
 
 ## 개발 PC에서 설치 묶음 만들기
 

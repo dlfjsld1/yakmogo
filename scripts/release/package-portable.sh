@@ -21,7 +21,8 @@ release_version=$(sed -n 's/^RELEASE_VERSION=//p' "$manifest")
 
 rm -rf "$output_dir"
 mkdir -p "$output_dir/images"
-for file in compose.yml .env.example README.md lib.sh install.sh update.sh backup.sh restore.sh; do
+for file in compose.yml .env.example README.md lib.sh install.sh update.sh backup.sh restore.sh \
+  install-backup-timer.sh remove-backup-timer.sh; do
   [[ -f $repository_root/deploy/portable/$file ]] \
     || { echo "portable package source is missing: $file" >&2; exit 1; }
   cp "$repository_root/deploy/portable/$file" "$output_dir/$file"
