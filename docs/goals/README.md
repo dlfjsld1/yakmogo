@@ -42,7 +42,9 @@
 - [Goal 5: 백엔드 API 테스트·검증·상태 전이](goal-05-backend-test-suite.md) — 완료
 - [Goal 6: React 약 관리 UI·UX](goal-06-medicine-ui.md) — 완료
 - [Goal 7: 알림 신뢰성 고도화](goal-07-notification-reliability.md) — 완료
-- [Goal 8: CI/CD와 8081 자동 배포·롤백](goal-08-ci-cd.md) — 자동 배포 활성화 전 승인 대기
+- [Goal 8: CI/CD와 8081 자동 배포·롤백](goal-08-ci-cd.md) — 완료
+- [Docker 전환: 8081 enhancement container](goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 CD 기본 경로 철회
+- [Docker D: 단일 명령 설치와 수동 업데이트](goal-docker-portable-install.md) — 완료
 
 ## Goal 1~10 실행 프롬프트
 

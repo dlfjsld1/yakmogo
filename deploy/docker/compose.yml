@@ -1,0 +1,31 @@
+name: yakmogo-enhancement
+
+services:
+  app:
+    image: ${YAKMOGO_IMAGE:?YAKMOGO_IMAGE is required}
+    container_name: yakmogo-enhancement
+    network_mode: host
+    env_file:
+      - /etc/yakmogo/yakmogo-enhancement.env
+    environment:
+      SPRING_PROFILES_ACTIVE: enhancement
+      SERVER_PORT: ${YAKMOGO_PORT:?YAKMOGO_PORT is required}
+      FRONTEND_URL: ${YAKMOGO_FRONTEND_URL:?YAKMOGO_FRONTEND_URL is required}
+      TELEGRAM_BOT_ENABLED: "false"
+      SCHEDULING_ENABLED: "false"
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    init: true
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

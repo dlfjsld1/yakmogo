@@ -1,6 +1,6 @@
-# 8081 CI/CD 배포 런북
+# 8081 CI/CD 배포 런북 (Goal 8 JAR 방식 기록)
 
-> 현재 상태: 활성화 및 검증 완료. `enhancement` push는 검증된 artifact를 Pi의 8081에 자동 배포하며, 실제 실패 후 rollback probe까지 통과했다.
+> 현재 상태: 이 문서는 Goal 8에서 검증한 JAR/systemd 배포 방식의 기록이다. 2026-07-15에 8081 runtime을 Docker로 전환했으며 현재 절차는 [8081 container 배포 런북](enhancement-container-deployment.md)을 따른다. container 자동 배포는 runner sudoers 승인·설치와 `enhancement` 병합 전이라 아직 활성화하지 않았다.
 
 ## 목적과 안전 경계
 

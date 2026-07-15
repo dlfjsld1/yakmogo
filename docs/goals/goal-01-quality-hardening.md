@@ -152,8 +152,8 @@ Gradle 다운로드의 `Permission denied`와 Vite 상위 경로 `Access is deni
 
 Goal 1 완료 당시:
 
-- 운영 `http://192.168.50.192:8080/` → 200
-- 고도화 `http://192.168.50.192:8081/` → 200
+- 운영 `http://<PI_LAN_IP>:8080/` → 200
+- 고도화 `http://<PI_LAN_IP>:8081/` → 200
 - 보호 API 인증 없음 → 401
 - 고도화 DB → `yakmogo_enhancement`
 - 고도화 서비스 재시작 횟수 → 0
@@ -168,10 +168,10 @@ Goal 1 완료 당시:
 ## 직접 확인하는 방법
 
 ```powershell
-Test-NetConnection 192.168.50.192 -Port 8080
-Test-NetConnection 192.168.50.192 -Port 8081
-Invoke-WebRequest http://192.168.50.192:8080/
-Invoke-WebRequest http://192.168.50.192:8081/
+Test-NetConnection <PI_LAN_IP> -Port 8080
+Test-NetConnection <PI_LAN_IP> -Port 8081
+Invoke-WebRequest http://<PI_LAN_IP>:8080/
+Invoke-WebRequest http://<PI_LAN_IP>:8081/
 ```
 
 Raspberry Pi:
