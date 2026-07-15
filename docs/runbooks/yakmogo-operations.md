@@ -14,6 +14,18 @@
 
 Container 재생성과 DB 복구는 다른 작업이다. Container는 image로 다시 만들 수 있지만 DB volume이 손상되거나 삭제되면 SQL dump가 필요하다. 따라서 복구 기준은 volume 복사가 아니라 checksum을 검증할 수 있는 논리 dump다.
 
+## 새 서버 설치
+
+새 서버에 필요한 선행 프로그램은 Docker Engine과 Docker Compose plugin뿐이다. release package를 푼 설치 사용자가 다음 한 명령을 실행한다.
+
+```bash
+./setup.sh
+```
+
+첫 실행에서 접속 URL과 관리자 비밀번호를 확인한다. 나머지 DB 비밀번호와 인증 secret은 자동 생성한다. `setup.sh`는 저수준 `install.sh`로 앱과 DB를 설치한 뒤 `sudo`를 한 번 사용해 backup timer를 등록하고 `/actuator/health`까지 확인한다.
+
+설치가 자동으로 건드리는 호스트 범위는 `/etc/systemd/system/yakmogo-backup.service`, `/etc/systemd/system/yakmogo-backup.timer` 두 파일뿐이다. Java, host MariaDB, runner, Tailscale과 다른 Compose project는 설치하지 않는다.
+
 ## Health endpoint
 
 ```text
@@ -43,7 +55,7 @@ docker compose --env-file .env -f compose.yml ps
 
 ## Timer 설치와 제거
 
-다음 명령은 `/etc/systemd/system`을 변경한다. 승인 전에는 실행하지 않는다.
+`setup.sh`를 사용하지 않고 timer만 나중에 추가할 때 다음 명령을 사용한다. 이 명령은 `/etc/systemd/system`을 변경하므로 승인 전에는 실행하지 않는다.
 
 ```bash
 cd /home/<user>/yakmogo-portable

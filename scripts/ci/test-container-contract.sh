@@ -7,6 +7,7 @@ compose=$repository_root/deploy/docker/compose.yml
 deploy_helper=$repository_root/deploy/cicd/yakmogo-enhancement-container-deploy
 portable_compose=$repository_root/deploy/portable/compose.yml
 portable_backup=$repository_root/deploy/portable/backup.sh
+portable_setup=$repository_root/deploy/portable/setup.sh
 backup_timer_installer=$repository_root/deploy/portable/install-backup-timer.sh
 release_workflow=$repository_root/.github/workflows/release-candidate.yml
 
@@ -59,6 +60,9 @@ grep -Fq 'sha256sum --check' "$portable_backup"
 grep -Fq 'retention skipped' "$portable_backup"
 grep -Fq 'OnCalendar=*-*-01 03:35:00 Asia/Seoul' "$backup_timer_installer"
 grep -Fq 'Persistent=true' "$backup_timer_installer"
+grep -Fq '"$PORTABLE_DIR/install.sh" "$@"' "$portable_setup"
+grep -Fq 'sudo "$PORTABLE_DIR/install-backup-timer.sh" "$service_user"' "$portable_setup"
+grep -Fq 'SETUP_RESULT=SUCCESS' "$portable_setup"
 grep -Fq 'runs-on: ubuntu-latest' "$release_workflow"
 ! grep -Fq 'self-hosted' "$release_workflow"
 ! grep -Fq 'Deploy enhancement container' "$release_workflow"
