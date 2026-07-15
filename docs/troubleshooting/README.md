@@ -8,7 +8,7 @@
 - 당시 의도를 확인할 수 없으면 `당시 의도 확인 불가`, 가능성만 말할 때는 `원인 추정`이라고 표시한다.
 - 토큰, 비밀번호, Chat ID와 같은 민감값은 항상 `<redacted>`로 표기한다.
 - 최종 해결책뿐 아니라 실제로 실패한 접근과 코드 작성 전에 검토 후 제외한 대안을 구분한다.
-- Goal 범위 밖에서 발견한 문제는 임의로 수정하지 않고 후속 Goal로 넘긴다.
+- 현재 작업 범위 밖에서 발견한 문제는 임의로 수정하지 않고 후속 작업으로 넘긴다.
 
 ## 주제별 문서
 
@@ -20,20 +20,6 @@
 - [UI 테스트와 8081 배포](ui-testing-and-deployment.md): Vitest 격리, Windows 실행·인코딩, 통합 JAR, 브라우저 삭제 확인
 - [알림 전달과 재시도](notification-reliability.md): 전달 상태, backoff, 중복 방지, 날짜 경계, 실제 메시지 없는 검증
 - [관측·백업·복원](operations.md): Actuator와 SPA fallback 구분, 검증 후 보관 정리, backup 종류 분리
-
-## Goal별 문서
-
-- [Goal 1: 품질 기반과 고도화 환경 격리](../goals/goal-01-quality-hardening.md)
-- [Goal 2: 인증·인가 강화](../goals/goal-02-auth-hardening.md)
-- [Goal 3: 런타임 설정과 비밀정보 분리](../goals/goal-03-runtime-config.md)
-- [Goal 4: Flyway 기반 DB 마이그레이션](../goals/goal-04-database-migration.md) — 완료
-- [Goal 5: 백엔드 API 테스트·검증·상태 전이](../goals/goal-05-backend-test-suite.md) — 완료
-- [Goal 6: React 약 관리 UI·UX](../goals/goal-06-medicine-ui.md) — 완료
-- [Goal 7: 알림 신뢰성 고도화](../goals/goal-07-notification-reliability.md) — 완료
-- [Goal 8: CI/CD와 8081 자동 배포·롤백](../goals/goal-08-ci-cd.md) — 완료
-- [Docker 전환: 8081 enhancement container](../goals/goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 배포 승인 대기
-- [Goal 9: 관측성·백업·복원](../goals/goal-09-operations.md) — 완료
-- [Goal 10: 전체 검증과 main 승격](../goals/goal-10-release-readiness.md) — main 보존·승격 준비
 
 ## 빠르게 찾는 법
 
