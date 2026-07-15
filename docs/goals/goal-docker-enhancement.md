@@ -98,7 +98,7 @@ shadow container는 다음 값을 Compose에서 강제로 덮어쓴다.
 ```text
 SPRING_PROFILES_ACTIVE=enhancement
 SERVER_PORT=18081
-FRONTEND_URL=http://192.168.50.192:18081
+FRONTEND_URL=http://<PI_LAN_IP>:18081
 TELEGRAM_BOT_ENABLED=false
 SCHEDULING_ENABLED=false
 ```

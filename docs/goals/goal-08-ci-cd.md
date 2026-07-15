@@ -178,7 +178,7 @@ Pi self-hosted deploy job
 
 `SUDO_PASSWORD`, DB 비밀번호, Telegram token, 관리자 비밀번호도 GitHub secret으로 추가하지 않는다. root helper는 허용된 고정 명령만 password 없이 실행하도록 좁은 sudoers rule을 사용한다. 애플리케이션 비밀값은 기존 `/etc/yakmogo/yakmogo-enhancement.env`에만 남는다.
 
-검토 후 제외한 대안은 `ENHANCEMENT_SSH_HOST`, `ENHANCEMENT_SSH_PORT`, `ENHANCEMENT_SSH_USER`, `ENHANCEMENT_SSH_PRIVATE_KEY`, `ENHANCEMENT_SSH_KNOWN_HOSTS`를 사용하는 hosted-runner SSH 방식이다. 현재 주소가 `192.168.50.192` 사설망이므로 GitHub-hosted runner가 직접 접근할 수 없고, 이를 위해 SSH port를 인터넷에 공개하거나 별도 VPN credential을 추가하는 것은 현재 규모에서 불필요한 공격면을 만든다.
+검토 후 제외한 대안은 `ENHANCEMENT_SSH_HOST`, `ENHANCEMENT_SSH_PORT`, `ENHANCEMENT_SSH_USER`, `ENHANCEMENT_SSH_PRIVATE_KEY`, `ENHANCEMENT_SSH_KNOWN_HOSTS`를 사용하는 hosted-runner SSH 방식이다. Pi가 사설망 주소만 사용하므로 GitHub-hosted runner가 직접 접근할 수 없고, 이를 위해 SSH port를 인터넷에 공개하거나 별도 VPN credential을 추가하는 것은 현재 규모에서 불필요한 공격면을 만든다.
 
 ## 배포 대상과 경로
 
