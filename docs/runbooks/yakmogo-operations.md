@@ -35,8 +35,8 @@ GET /actuator/health
 정상이면 HTTP 200과 `{"status":"UP"}`만 반환한다. DB 연결을 포함한 전체 상태는 반영하지만 component 이름과 상세 오류는 숨긴다. `/actuator/env`, `/actuator/configprops`, `/actuator/heapdump`는 Actuator endpoint로 노출하지 않는다.
 
 ```bash
-curl -i http://127.0.0.1:8081/actuator/health
-curl -i http://127.0.0.1:8081/api/v1/users
+curl -i http://127.0.0.1:8080/actuator/health
+curl -i http://127.0.0.1:8080/api/v1/users
 docker compose --env-file .env -f compose.yml ps
 ```
 
@@ -80,7 +80,7 @@ sudo ./remove-backup-timer.sh
 
 ## 복원 리허설
 
-운영 DB나 현재 enhancement volume에 덮어쓰지 않는다. 별도 Compose project와 빈 임시 volume을 만든 뒤 복원한다.
+운영 DB나 현재 운영 volume에 덮어쓰지 않는다. 별도 Compose project와 빈 임시 volume을 만든 뒤 복원한다.
 
 1. dump와 checksum을 같은 폴더에 둔다.
 2. `sha256sum --check <dump>.sha256`을 실행한다.
@@ -90,7 +90,7 @@ sudo ./remove-backup-timer.sh
 6. Flyway 이력과 핵심 table row 수를 원본과 비교한다.
 7. 시험용 Compose project와 volume만 제거한다.
 
-자동 통합검증은 `scripts/ci/test-portable-install.sh`가 이 흐름을 수행한다. 실제 Pi 리허설에서도 운영 `yakmogo`, 운영 8080과 현재 enhancement volume을 대상으로 `down -v`를 실행하지 않는다.
+자동 통합검증은 `scripts/ci/test-portable-install.sh`가 이 흐름을 수행한다. 실제 Pi 리허설에서도 운영 `yakmogo`, 운영 8080과 운영 volume을 대상으로 `down -v`를 실행하지 않는다.
 
 ## Uptime Kuma 설정
 
@@ -98,9 +98,9 @@ Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor
 
 | 이름 | 대상 | 주기 | 정상 조건 |
 |---|---|---:|---|
-| `Yakmogo` | `http://<PI_LAN_IP>:8080/` | 60초 | HTTP 200 |
+| `Yakmogo Health` | `http://<PI_LAN_IP>:8080/actuator/health` | 60초 | HTTP 200, `{"status":"UP"}` |
 
-현재 운영 8080은 Actuator가 없는 이전 release이므로 루트 화면을 감시한다. 8081 enhancement는 release candidate 검증용이므로 Kuma에 추가하지 않았다. Goal 10에서 새 release가 main과 8080에 승격되면 기존 monitor 하나의 URL만 `/actuator/health`로 바꿔 이력과 알림 설정을 유지한다.
+2026-07-15 운영 전환 때 기존 monitor 하나의 이름과 URL만 바꿔 이력과 알림 설정을 유지했다. 8081 enhancement, MariaDB container와 GitHub Actions runner에는 별도 monitor를 만들지 않는다. 운영 `/actuator/health`가 앱과 DB 연결을 함께 판단하므로 Yakmogo monitor 하나면 충분하다.
 
 설명에는 다음 내용을 넣는다.
 
@@ -112,9 +112,23 @@ Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor
 복구 문서: docs/runbooks/yakmogo-operations.md
 ```
 
-기존 `Yakmogo` monitor에 설명만 추가해 재사용한다. 8081 enhancement, MariaDB container와 GitHub Actions self-hosted runner에는 별도 Kuma monitor를 만들지 않는다. 운영 `/actuator/health`가 앱과 DB 연결을 함께 판단하므로 최종적으로도 Yakmogo monitor 하나면 충분하다.
+2026-07-15 적용 결과는 monitor 하나, 60초, active이며 설명에 목적·대상·정상 조건·확인 명령·이 문서 경로를 기록했다. 변경 전 Kuma DB는 `/var/backups/yakmogo/uptime-kuma-monitor-<시각>/kuma.db`에 권한 `600`으로 보관하고 SHA-256을 검증했다.
 
-2026-07-15 적용 결과는 monitor 하나, 60초, active이며 설명에 감시 대상·정상 조건·장애 영향·확인 명령·이 문서 경로를 기록했다. 변경 전 Kuma DB 백업은 Kuma data directory 안에 권한 `600`으로 보관했다.
+## 2026-07-15 운영 전환 기준선
+
+- 설치 위치: `/home/pi/yakmogo-portable`
+- Compose project: `yakmogo`
+- 서비스: 앱 8080, 전용 MariaDB는 내부 network에서만 3306 사용
+- 선택 기능: Telegram bot과 scheduler 활성
+- 기존 systemd `yakmogo.service`: 중지·비활성, 파일과 host MariaDB는 초기 rollback을 위해 보존
+- 기존 8081 enhancement container: 제거, volume은 초기 rollback을 위해 보존
+- 운영 전환 전·직전 dump: `/var/backups/yakmogo/production-transition-<시각>`
+- 정기 backup timer: active·enabled, 매월 1일 03:35 KST
+- Flyway: V1 baseline과 V2 migration 성공
+
+운영 전환 직후 users 1, guardian 1, medicine_group 2, intake_log 66건이 기존 DB와 같고 중복 복약 일정은 0건이었다. 루트와 health는 HTTP 200, 미인증 보호 API는 HTTP 401, 8081은 미기동 상태를 확인했다. 실제 값은 시점에 따라 변하므로 이후 장애 판단에서는 최신 검증 backup과 현재 row 수를 함께 비교한다.
+
+초기 rollback이 필요하면 먼저 현재 운영 DB를 새 dump로 보존한다. 앱 image 문제는 `update.sh`의 직전 image rollback을 우선 사용한다. 새 Docker DB를 폐기하고 기존 host DB·systemd 서비스로 돌아가는 작업은 전환 이후 입력된 데이터의 유실 위험이 있으므로 자동화하지 않으며, 두 DB의 차이를 확인하고 명시적 승인 후 수행한다.
 
 ## 장애 확인 순서
 

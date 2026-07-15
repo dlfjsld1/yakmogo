@@ -2,7 +2,7 @@
 
 ## 현재 상태
 
-**릴리스 후보 검증 완료, main 보존·승격 준비.** 코드 기준 backend `6f7b80c`, web `3330335`에 대한 로컬·CI·Pi 8081 검증을 완료했다. 문서 변경 외 런타임 코드는 추가하지 않는다.
+**완료.** 기존 main을 `archive/v0.0.7-pre-enhancement`로 보존하고 검증된 고도화 코드를 main에 승격한 뒤, 2026-07-15 Pi 운영 8080을 Docker Compose 기반 release로 전환했다.
 
 ## 한 문장 요약
 
@@ -89,6 +89,23 @@ Release Candidate workflow는 GitHub-hosted runner에서 web을 다시 빌드하
 - 운영 DB 행 수: users 1, guardian 1, medicine_group 2, intake_log 66
 - 운영 DB 논리 크기: 시험 전후 131,072 bytes
 - 운영 서비스 재시작, 운영 DB migration과 release tag 생성: 수행하지 않음
+
+위 항목은 Goal 10 승인 전 릴리스 후보 검증 시점의 결과다. 이후 사용자의 별도 운영 전환 승인을 받아 아래 절차를 수행했다.
+
+## main 승격과 운영 전환 결과
+
+- 기존 main은 backend와 web 모두 `archive/v0.0.7-pre-enhancement` 원격 브랜치로 보존했다.
+- 검증된 enhancement를 main에 병합하고 두 저장소의 main CI 성공을 확인했다.
+- 운영 전환 직전 MariaDB dump를 생성해 gzip과 SHA-256을 검증했다.
+- 기존 host MariaDB 데이터를 새 Yakmogo 전용 MariaDB volume으로 복원했다.
+- 기존 non-empty schema에는 일회성 `baselineOnMigrate`로 V1 기준선을 기록하고 V2 migration을 적용했다. 일반 실행 설정에는 baseline 자동화를 남기지 않았다.
+- 핵심 row 수는 users 1, guardian 1, medicine_group 2, intake_log 66건으로 전환 전과 같고 중복 복약 일정은 0건이었다.
+- Flyway V1·V2가 모두 성공했고 운영 root·health는 HTTP 200, 미인증 보호 API는 HTTP 401이었다.
+- Telegram bot과 scheduler를 활성화한 운영 Compose project `yakmogo`를 8080에서 실행했다.
+- 기존 `yakmogo.service`는 중지·비활성화했지만 파일과 host MariaDB는 초기 rollback 근거로 보존했다.
+- 8081 enhancement container는 제거했고 해당 volume은 초기 rollback 근거로 보존했다.
+- 정기 backup을 즉시 실행해 gzip·SHA-256을 검증했으며 timer는 매월 1일 03:35 KST에 active·enabled 상태다.
+- Uptime Kuma의 기존 Yakmogo monitor 하나만 `Yakmogo Health`와 `/actuator/health` 대상으로 바꾸고 설명을 갱신했다. 별도 8081·DB·runner monitor는 만들지 않았다.
 
 ## 알려진 이슈와 잔여 위험
 
