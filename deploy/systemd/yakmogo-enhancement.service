@@ -1,0 +1,17 @@
+[Unit]
+Description=Yakmogo Enhancement Spring Boot Server
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/myprojects/yakmogo-enhancement
+EnvironmentFile=/etc/yakmogo/yakmogo-enhancement.env
+ExecStart=/home/pi/myprojects/yakmogo-enhancement/start.sh
+Restart=on-failure
+RestartSec=10
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,77 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - enhancement
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - main
+      - enhancement
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-password
+          MARIADB_DATABASE: yakmogo_test
+          MARIADB_USER: yakmogo_test
+          MARIADB_PASSWORD: test-database-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost -uroot -ptest-root-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MARIADB_TEST_URL: jdbc:mariadb://127.0.0.1:3306/yakmogo_test
+      MARIADB_TEST_USER: yakmogo_test
+      MARIADB_TEST_PASSWORD: test-database-password
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Verify backend
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean test bootJar --no-daemon
+
+      - name: Confirm MariaDB migration test ran
+        shell: bash
+        run: |
+          report="build/test-results/test/TEST-com.yakmogo.yakmogo.migration.FlywayMariaDbIntegrationTest.xml"
+          test -f "$report"
+          grep -q 'tests="1"' "$report"
+          grep -q 'skipped="0"' "$report"
+
+      - name: Validate release candidate tooling
+        shell: bash
+        run: |
+          chmod +x scripts/ci/*.sh scripts/release/*.sh deploy/portable/*.sh deploy/cicd/*.sh \
+            deploy/cicd/yakmogo-enhancement-container-deploy
+          bash -n scripts/ci/*.sh scripts/release/*.sh deploy/portable/*.sh deploy/cicd/*.sh \
+            deploy/cicd/yakmogo-enhancement-container-deploy
+          scripts/ci/test-integrated-jar-verifier.sh
+          scripts/ci/test-container-contract.sh
+          scripts/ci/test-portable-setup.sh deploy/portable
+          grep -Fxq \
+            'yakmogo-runner ALL=(root) NOPASSWD: /usr/local/sbin/yakmogo-enhancement-container-deploy' \
+            deploy/cicd/yakmogo-enhancement-container-deploy.sudoers

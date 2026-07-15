@@ -43,6 +43,16 @@ Thumbs.db
 
 ### Secrets ###
 secrets.yml
+.env
+.env.*
+*.env
+*.env.*
+!*.env.example
+!**/*.env.example
+deploy/systemd/*.env
+!deploy/systemd/*.env.example
+deploy/portable/current-release-manifest.txt
+deploy/portable/backups/
 
 ### Config ###
 src/main/resources/application-local.yml

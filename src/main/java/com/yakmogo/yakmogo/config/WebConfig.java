@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.yakmogo.yakmogo.interceptor.AdminInterceptor;
+import com.yakmogo.yakmogo.interceptor.AuthenticationInterceptor;
 
 import lombok.RequiredArgsConstructor;
 
@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
-	private final AdminInterceptor adminInterceptor;
+	private final AuthenticationInterceptor authenticationInterceptor;
 
 	@Value("${app.frontend.url}")
 	private String frontendUrl;
@@ -22,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
 	//인터셉터 등록
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
-		registry.addInterceptor(adminInterceptor)
+		registry.addInterceptor(authenticationInterceptor)
 			.addPathPatterns("/api/**")
 			// 텔레그램 인증 API는 암호 없이 통과
 			.excludePathPatterns(

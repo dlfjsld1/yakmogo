@@ -1,0 +1,54 @@
+# Goal 문서 작성 템플릿
+
+각 Goal 문서는 다음 구조를 사용한다. 실제 시행착오가 없으면 내용을 만들지 말고 `기록할 만한 시행착오 없음`이라고 적는다.
+
+```text
+# Goal 번호와 이름
+
+## 한 문장 요약
+## 작업 배경
+## 변경 전 문제
+## 이번 Goal 범위
+## 범위에서 제외한 내용
+## 도입한 기술과 개념
+## 선택한 방식과 대안
+## 실제 동작 흐름
+## 변경된 파일과 역할
+## 데이터 및 설정 변경
+## 시행착오와 문제 해결 과정
+## 테스트와 보호 시나리오
+## 배포 및 검증
+## 운영 시 주의 사항
+## 직접 확인하는 방법
+## 알려진 한계
+## 후속 Goal에 넘길 내용
+```
+
+## 공통 작성 규칙
+
+- `main`, 운영 8080, 운영 DB에 영향을 줬는지 명시한다.
+- 변경 전후 흐름을 코드 이름과 HTTP 상태로 설명한다.
+- 실패 로그는 핵심 문장만 인용하고 민감값을 마스킹한다.
+- 검토만 한 대안과 실제 실행했다가 실패한 접근을 구분한다.
+- 관련 트러블슈팅 문서와 서로 링크한다.
+- Android, Device, Pairing, FCM 등 2차 고도화 항목은 실제 구현하지 않은 경우 설계된 것처럼 쓰지 않는다.
+
+## 작성된 Goal 문서
+
+- [Goal 1: 품질 기반과 고도화 환경 격리](goal-01-quality-hardening.md)
+- [Goal 2: 인증·인가 강화](goal-02-auth-hardening.md)
+- [Goal 3: 런타임 설정과 비밀정보 분리](goal-03-runtime-config.md)
+- [Goal 4: Flyway 기반 DB 마이그레이션](goal-04-database-migration.md) — 완료
+- [Goal 5: 백엔드 API 테스트·검증·상태 전이](goal-05-backend-test-suite.md) — 완료
+- [Goal 6: React 약 관리 UI·UX](goal-06-medicine-ui.md) — 완료
+- [Goal 7: 알림 신뢰성 고도화](goal-07-notification-reliability.md) — 완료
+- [Goal 8: CI/CD와 8081 자동 배포·롤백](goal-08-ci-cd.md) — 완료
+- [Docker 전환: 8081 enhancement container](goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 CD 기본 경로 철회
+- [Docker D: 단일 명령 설치와 수동 업데이트](goal-docker-portable-install.md) — 완료
+- [Goal 9: 관측성·백업·복원](goal-09-operations.md) — 완료
+- [Goal 10: 전체 검증과 main 승격](goal-10-release-readiness.md) — main 보존·승격 준비
+- [Android 2차 개발 로드맵](../roadmaps/android-phase-2.md) — 1차 고도화 후속 계획
+
+## Goal 1~10 실행 프롬프트
+
+- [공통 원칙과 Goal별 실행 프롬프트](prompts/README.md)

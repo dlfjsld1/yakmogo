@@ -3,6 +3,18 @@
 가족들의 투약 관리를 위해 만들어진 토이 프로젝트입니다.  
 사용자의 투약 스케줄을 관리하고, 텔레그램 봇을 통해 정해진 시간에 알림을 발송합니다.
 
+## 📚 개발 및 문제 해결 문서
+
+- [Goal별 설계·변경·검증 기록](docs/goals/README.md)
+- [Goal 3: 런타임 설정과 비밀정보 분리](docs/goals/goal-03-runtime-config.md)
+- [시행착오 및 트러블슈팅 인덱스](docs/troubleshooting/README.md)
+- [인증과 인가 트러블슈팅](docs/troubleshooting/authentication.md)
+- [배포와 런타임 트러블슈팅](docs/troubleshooting/deployment-and-runtime.md)
+- [CI/CD 트러블슈팅](docs/troubleshooting/ci-cd.md)
+- [알림 전달과 재시도 트러블슈팅](docs/troubleshooting/notification-reliability.md)
+- [8081 CI/CD 배포 런북](docs/runbooks/enhancement-cicd.md)
+- [8081 Docker container 배포 런북](docs/runbooks/enhancement-container-deployment.md)
+
 ## 📌 텔레그램 봇 설정 방법
 
 1. 텔레그램 앱에서 **@yakson_bot**을 검색하여 대화방에 입장합니다.
@@ -14,9 +26,9 @@
    
 ## 📌 인프라 제약 사항 및 아키텍처 결정
 
-* **컨테이너화 생략 (No Docker):** 라즈베리파이 Buster OS의 호환성 문제로 Docker 대신 Native 환경에서 직접 실행하도록 구성했습니다.
+* **단계적 Docker 전환:** 운영 8080은 systemd로 유지하고 고도화 8081은 ARM64 Docker container로 전환했습니다. 운영 전환과 DB 변경은 별도 승인 범위입니다.
 * **로컬망 중심 설계:** 관리자 페이지는 홈 네트워크(로컬) 내부에서 수행하며, 알림은 텔레그램 API(Outbound)를 통해 외부로 전송됩니다.
-* **보안 주의:** 민감 정보(DB 비번, 토큰 등)는 환경변수 및 실행 파라미터(`-D`)로 주입합니다.
+* **보안 주의:** 민감 정보(DB 비번, 토큰 등)는 Git에 저장하거나 Java `-D` 인자로 전달하지 않습니다. systemd가 읽는 권한 `600`의 `EnvironmentFile`로 주입합니다.
 
 ## 📌 실행 환경 요구사항
 
@@ -41,11 +53,8 @@ GRANT ALL PRIVILEGES ON yakmogo.* TO 'yakmogo_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-`DB비밀번호`는 서버 실행 시 전달하는 `YAKMOGO_DB_PASSWORD` 값과 동일해야 합니다.
-
-```bash
--DYAKMOGO_DB_PASSWORD=DB비밀번호
-```
+`DB비밀번호`는 해당 실행 환경의 보호된 `EnvironmentFile`에 기록하는
+`YAKMOGO_DB_PASSWORD` 값과 동일해야 합니다.
 
 JPA 설정은 `ddl-auto: update`이므로, 데이터베이스와 계정만 준비되어 있으면 필요한 테이블은 애플리케이션 실행 시 자동으로 생성/갱신됩니다.
 
@@ -74,61 +83,29 @@ npm run build
 
 👉 `build/libs/`에 생성된 `.jar` 파일을 실행 환경으로 이동시킵니다.
 
-### 2. 스냅샷 실행 (작동 테스트용)
+### 2. 고도화(8081) systemd 설정
 
-```bash
-java -DRASPI_IP=localhost \
-     -DYAKMOGO_DB_PASSWORD=DB비번 \
-     -DTELEGRAM_BOT_TOKEN=텔레그램봇토큰 \
-     -DTELEGRAM_CHAT_ID=관리자텔레그램챗아이디 \
-     -DADMIN_PASSWORD=관리자비밀번호 \
-     -DFRONTEND_URL=http://<현재_로컬_IP>:8080 \
-     -jar yakmogo-0.0.7-SNAPSHOT.jar
-```
+고도화 환경은 `SPRING_PROFILES_ACTIVE=enhancement`를 사용한다. 이 프로필은 포트
+`8081`, DB `yakmogo_enhancement`, Telegram bot 비활성, scheduler 비활성을 명시한다.
 
-### 3. systemd 서비스 등록 (자동 시작)
+- unit: `deploy/systemd/yakmogo-enhancement.service`
+- 비밀값 없는 예제: `deploy/systemd/yakmogo-enhancement.env.example`
+- 실행 스크립트: `deploy/systemd/start-enhancement.sh`
 
-#### 3-1. 실행 스크립트 (`start.sh`) 작성
+예제 파일을 `/etc/yakmogo/yakmogo-enhancement.env`로 복사한 뒤 실제 값을 서버에서만
+입력하고 소유권 `root:root`, 권한 `600`을 적용한다. `start.sh`에는 비밀값을 넣지
+않으며 Java 명령은 `java -jar ...`만 남긴다.
 
-```bash
-#!/bin/bash
-MY_IP=$(hostname -I | awk '{print $1}')
-JAR_PATH="/home/pi/myprojects/yakmogo/yakmogo-0.0.7-SNAPSHOT.jar"
-
-/usr/bin/java \
-    -DRASPI_IP=localhost \
-    -DYAKMOGO_DB_PASSWORD=DB비번 \
-    -DTELEGRAM_BOT_TOKEN=텔레그램봇토큰 \
-    -DTELEGRAM_CHAT_ID=관리자텔레그램챗아이디 \
-    -DADMIN_PASSWORD=관리자비밀번호 \
-    -DFRONTEND_URL=http://${MY_IP}:8080 \
-    -jar $JAR_PATH
-```
-
-#### 3-2. 서비스 파일 (`yakmogo.service`) 등록
-
-```ini
-[Unit]
-Description=Yakmogo Spring Boot Server
-After=network.target
-
-[Service]
-User=pi
-WorkingDirectory=/home/pi/myprojects/yakmogo
-ExecStart=/home/pi/myprojects/yakmogo/start.sh
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
+운영 8080은 고도화 완료 전 변경하지 않는다. 운영용 unit과 환경파일 전환은 별도
+점검·롤백 계획 아래 수행한다. 자세한 설치·검증·복구 절차는
+[Goal 3 문서](docs/goals/goal-03-runtime-config.md)를 따른다.
 
 **✅ 운영 명령어**
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl start yakmogo.service
-sudo systemctl enable yakmogo.service
+sudo systemctl start yakmogo-enhancement.service
+sudo systemctl enable yakmogo-enhancement.service
 # 실시간 로그 확인
-journalctl -u yakmogo.service -f
+journalctl -u yakmogo-enhancement.service -f
 ```

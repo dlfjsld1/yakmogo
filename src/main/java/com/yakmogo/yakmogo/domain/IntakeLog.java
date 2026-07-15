@@ -12,6 +12,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(
+	name = "uk_intake_log_medicine_date",
+	columnNames = {"medicine_group_id", "intake_date"}
+))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IntakeLog {
@@ -49,9 +53,9 @@ public class IntakeLog {
 	}
 
 	// 약 먹을 때 상태 변경
-	public void markAsTaken() {
+	public void markAsTaken(LocalDateTime completedAt) {
 		this.status = IntakeStatus.TAKEN;
-		this.actualTakenTime = LocalDateTime.now();
+		this.actualTakenTime = completedAt;
 	}
 
 	@Builder
