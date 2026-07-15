@@ -1,111 +1,100 @@
-# 💊 약손 (Yakmogo) - 투약 관리 및 알림 시스템 (Backend)
+# 약모고 (Yakmogo)
 
-가족들의 투약 관리를 위해 만들어진 토이 프로젝트입니다.  
-사용자의 투약 스케줄을 관리하고, 텔레그램 봇을 통해 정해진 시간에 알림을 발송합니다.
+약모고는 가족의 약 복용 일정과 복약 상태를 관리하고, Telegram으로 복약 알림을 전달하는 개인용 서비스입니다. Spring Boot 백엔드와 React 관리자 웹, Yakmogo 전용 MariaDB로 구성되며 Raspberry Pi를 포함한 64비트 Linux에서 Docker Compose로 운영할 수 있습니다.
 
-## 📚 개발 및 문제 해결 문서
+## 빠른 설치
+
+새 서버에는 **Docker Engine과 Docker Compose plugin만** 설치되어 있으면 됩니다. Java, Node.js, MariaDB, GitHub Actions runner와 Tailscale은 약모고 실행에 필요하지 않습니다.
+
+배포용 `yakmogo-<version>-portable.tar.gz`와 같은 이름의 `.sha256` 파일을 서버로 옮긴 뒤 실행합니다.
+
+```bash
+sha256sum --check yakmogo-<version>-portable.tar.gz.sha256
+tar -xzf yakmogo-<version>-portable.tar.gz
+cd yakmogo-portable
+./setup.sh
+```
+
+`setup.sh`는 관리자 비밀번호와 접속 URL만 확인하고 다음 작업을 한 번에 처리합니다.
+
+- Yakmogo 앱과 전용 MariaDB image 설치
+- DB 비밀번호와 인증 secret 자동 생성
+- 앱·DB container 시작과 health 확인
+- 매월 1일 03:35(한국 시간) 자동 DB 백업 등록
+- 검증된 백업을 폴더별 최신 3개까지 보관
+
+기존 약모고 DB를 이식하면서 설치할 때는 SQL dump를 함께 지정합니다.
+
+```bash
+./setup.sh /안전한/경로/yakmogo-db.sql.gz
+```
+
+Telegram token과 Chat ID는 자동으로 알 수 없기 때문에 신규 설치에서는 알림이 기본 비활성입니다. 설치 후 보호된 `.env`에 값을 입력하고 명시적으로 활성화해야 합니다. 자세한 설치·업데이트·복원 방법은 [휴대형 설치 안내](deploy/portable/README.md)와 [운영 런북](docs/runbooks/yakmogo-operations.md)을 참고하세요.
+
+## 개발 배경과 방식
+
+초기 버전은 개발자가 직접 설계하고 구현했습니다. 실제 가족이 사용하던 중 알림 전달과 복약 상태 처리에서 신뢰성 문제가 확인되었고, 이 문제를 해결하는 동시에 향후 Kotlin Android 앱을 안정적으로 개발할 수 있도록 기존 구조 전반을 고도화했습니다. Android 앱 자체와 Device, Pairing, FCM 기능은 이번 버전에 포함하지 않았으며 별도의 2차 개발 단계로 분리했습니다.
+
+고도화 버전은 AI 코딩 도구를 적극 활용하는 **바이브 코딩(vibe coding)** 방식으로 개발했습니다. AI가 생성한 결과를 그대로 배포한 것이 아니라, 개발자가 목표와 설계 방향을 결정하고 Goal별 브랜치에서 코드 검토, 자동 테스트, 문서화, 실제 MariaDB·Raspberry Pi·ARM64 환경 검증을 거쳐 통합했습니다.
+
+## 주요 고도화 내용
+
+- 서명된 Telegram 로그인 proof와 만료되는 access token을 사용하도록 인증 구조 개선
+- 인증 주체와 허용 사용자 범위를 서비스 계층에서 일관되게 처리하도록 인가 경계 정리
+- REST와 Telegram callback의 복약 완료 처리를 공통 `IntakeCommandService`로 통합
+- 알림 시간 정책, 전달 결과와 재시도를 분리하고 중복 발송 방지 기록 추가
+- Flyway V1·V2와 JPA `ddl-auto=validate`를 이용한 재현 가능한 DB migration 도입
+- 약품 일정 생성·수정·삭제 화면과 입력 검증, 사용자 흐름 개선
+- 백엔드 통합 테스트와 프런트엔드 Vitest·React Testing Library 검사 확대
+- GitHub Actions CI와 실제 배포 대상인 ARM64 container 후보 검증 추가
+- 앱과 Yakmogo 전용 MariaDB를 하나의 Compose project로 묶은 간편 설치 제공
+- 제한된 health endpoint, 월간 논리 백업, checksum 검증과 update rollback 절차 추가
+- Android가 추가되어도 Telegram 전용 로직에 묶이지 않도록 상태 전이·인증·알림 경계 정리
+
+상세한 설계 결정과 시행착오는 [Goal별 기록](docs/goals/README.md), 후속 Android 계획은 [Android 2차 개발 로드맵](docs/roadmaps/android-phase-2.md)에 정리되어 있습니다.
+
+## 구성
+
+- `yakmogo-app`: Spring Boot API와 빌드된 React 관리자 웹을 함께 제공
+- `yakmogo-mariadb`: 약모고 전용 MariaDB. 호스트에 3306 포트를 공개하지 않음
+- `${COMPOSE_PROJECT_NAME}-mariadb-data`: DB 영속 volume
+- `.env`: DB 비밀번호, 관리자 비밀번호, 인증 secret과 Telegram 설정. Git에 포함하지 않음
+- `backups/scheduled`: 정기 백업
+- `backups/update`: 업데이트 직전 백업
+
+애플리케이션의 `/actuator/health`는 앱과 DB 연결을 합친 상태만 `UP` 또는 `DOWN`으로 반환하며 환경변수나 component 상세 정보는 공개하지 않습니다.
+
+## Telegram 설정
+
+1. Telegram에서 `@yakson_bot`을 검색하고 `/start`를 입력합니다.
+2. 봇이 알려준 Chat ID를 확인합니다.
+3. 일반 사용자의 Chat ID는 관리자 웹의 사용자 설정에서 등록합니다.
+4. 서버 관리용 token과 Chat ID는 설치 폴더의 `.env`에만 기록합니다.
+5. `TELEGRAM_BOT_ENABLED=true`, `SCHEDULING_ENABLED=true`로 설정한 뒤 앱 container를 다시 만듭니다.
+
+비밀번호, bot token, Chat ID, SQL dump는 Git에 commit하지 않습니다.
+
+## 개발과 검증
+
+백엔드는 Java 21과 Gradle을 사용합니다.
+
+```bash
+./gradlew clean test build
+```
+
+웹을 포함한 ARM64 설치 image는 웹 `dist`를 준비한 뒤 빌드합니다.
+
+```powershell
+.\scripts\release\build-image.ps1 -Version 0.0.7 -WebDist ..\yakmogo-web\dist
+```
+
+생성 결과와 배포 형식은 [휴대형 설치 안내](deploy/portable/README.md)의 “개발 PC에서 설치 묶음 만들기”를 따릅니다.
+
+## 문서
 
 - [Goal별 설계·변경·검증 기록](docs/goals/README.md)
-- [Goal 3: 런타임 설정과 비밀정보 분리](docs/goals/goal-03-runtime-config.md)
-- [시행착오 및 트러블슈팅 인덱스](docs/troubleshooting/README.md)
-- [인증과 인가 트러블슈팅](docs/troubleshooting/authentication.md)
-- [배포와 런타임 트러블슈팅](docs/troubleshooting/deployment-and-runtime.md)
+- [시행착오 및 트러블슈팅](docs/troubleshooting/README.md)
+- [운영·백업·복원 런북](docs/runbooks/yakmogo-operations.md)
 - [CI/CD 트러블슈팅](docs/troubleshooting/ci-cd.md)
-- [알림 전달과 재시도 트러블슈팅](docs/troubleshooting/notification-reliability.md)
-- [8081 CI/CD 배포 런북](docs/runbooks/enhancement-cicd.md)
-- [8081 Docker container 배포 런북](docs/runbooks/enhancement-container-deployment.md)
-
-## 📌 텔레그램 봇 설정 방법
-
-1. 텔레그램 앱에서 **@yakson_bot**을 검색하여 대화방에 입장합니다.
-2. **/start** 명령어를 입력합니다.
-3. 봇이 자동으로 사용자의 **Chat ID**를 인식하여 메시지로 전송해줍니다.
-4. **등록 절차:**
-   - **관리자:** 봇이 알려준 ID를 서버 실행 시 환경변수(`TELEGRAM_CHAT_ID`)로 주입하여 시스템 알림을 수신합니다.
-   - **일반 사용자:** 봇이 알려준 ID를 복사하여 관리자에게 전달하고, **관리자는 이를 '관리자 페이지'의 사용자 설정 메뉴에 직접 입력**하여 저장합니다.
-   
-## 📌 인프라 제약 사항 및 아키텍처 결정
-
-* **단계적 Docker 전환:** 운영 8080은 systemd로 유지하고 고도화 8081은 ARM64 Docker container로 전환했습니다. 운영 전환과 DB 변경은 별도 승인 범위입니다.
-* **로컬망 중심 설계:** 관리자 페이지는 홈 네트워크(로컬) 내부에서 수행하며, 알림은 텔레그램 API(Outbound)를 통해 외부로 전송됩니다.
-* **보안 주의:** 민감 정보(DB 비번, 토큰 등)는 Git에 저장하거나 Java `-D` 인자로 전달하지 않습니다. systemd가 읽는 권한 `600`의 `EnvironmentFile`로 주입합니다.
-
-## 📌 실행 환경 요구사항
-
-- **Java 21 Runtime** (OpenJDK 21 권장)
-  - 본 프로젝트는 **Build-Jdk-Spec 21** 기준으로 빌드되었습니다.
-  - Java 17 이하에서는 실행되지 않을 수 있습니다.
-- **MariaDB**
-- **Node.js + npm** (프론트엔드 빌드 시)
----
-
-## 📌 MariaDB 초기 설정
-
-약모고는 MariaDB의 `yakmogo` 데이터베이스와 `yakmogo_user` 계정을 사용합니다.
-
-```sql
-CREATE DATABASE yakmogo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-CREATE USER 'yakmogo_user'@'localhost' IDENTIFIED BY 'DB비밀번호';
-
-GRANT ALL PRIVILEGES ON yakmogo.* TO 'yakmogo_user'@'localhost';
-
-FLUSH PRIVILEGES;
-```
-
-`DB비밀번호`는 해당 실행 환경의 보호된 `EnvironmentFile`에 기록하는
-`YAKMOGO_DB_PASSWORD` 값과 동일해야 합니다.
-
-JPA 설정은 `ddl-auto: update`이므로, 데이터베이스와 계정만 준비되어 있으면 필요한 테이블은 애플리케이션 실행 시 자동으로 생성/갱신됩니다.
-
----
-
-## 🚀 배포 및 설치 가이드 (라즈베리파이 기준)
-
-> **사전 요구사항:** MariaDB가 별도로 설치되어 있어야 합니다.
-
-### 1. 통합 빌드 (Build)
-
-**[프론트엔드 빌드]**
-
-```bash
-npm install
-npm run build
-```
-
-👉 `dist` 내부 파일을 백엔드 `src/main/resources/static/` 경로로 복사합니다.
-
-**[백엔드 빌드]**
-
-```bash
-./gradlew clean build -x test
-```
-
-👉 `build/libs/`에 생성된 `.jar` 파일을 실행 환경으로 이동시킵니다.
-
-### 2. 고도화(8081) systemd 설정
-
-고도화 환경은 `SPRING_PROFILES_ACTIVE=enhancement`를 사용한다. 이 프로필은 포트
-`8081`, DB `yakmogo_enhancement`, Telegram bot 비활성, scheduler 비활성을 명시한다.
-
-- unit: `deploy/systemd/yakmogo-enhancement.service`
-- 비밀값 없는 예제: `deploy/systemd/yakmogo-enhancement.env.example`
-- 실행 스크립트: `deploy/systemd/start-enhancement.sh`
-
-예제 파일을 `/etc/yakmogo/yakmogo-enhancement.env`로 복사한 뒤 실제 값을 서버에서만
-입력하고 소유권 `root:root`, 권한 `600`을 적용한다. `start.sh`에는 비밀값을 넣지
-않으며 Java 명령은 `java -jar ...`만 남긴다.
-
-운영 8080은 고도화 완료 전 변경하지 않는다. 운영용 unit과 환경파일 전환은 별도
-점검·롤백 계획 아래 수행한다. 자세한 설치·검증·복구 절차는
-[Goal 3 문서](docs/goals/goal-03-runtime-config.md)를 따른다.
-
-**✅ 운영 명령어**
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl start yakmogo-enhancement.service
-sudo systemctl enable yakmogo-enhancement.service
-# 실시간 로그 확인
-journalctl -u yakmogo-enhancement.service -f
-```
+- [알림 신뢰성 트러블슈팅](docs/troubleshooting/notification-reliability.md)
+- [Android 2차 개발 로드맵](docs/roadmaps/android-phase-2.md)
