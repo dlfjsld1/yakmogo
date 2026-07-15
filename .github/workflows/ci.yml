@@ -3,11 +3,13 @@ name: Backend CI
 on:
   push:
     branches:
+      - main
       - enhancement
       - 'feature/**'
       - 'fix/**'
   pull_request:
     branches:
+      - main
       - enhancement
   workflow_dispatch:
 

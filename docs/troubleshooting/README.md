@@ -33,6 +33,7 @@
 - [Goal 8: CI/CD와 8081 자동 배포·롤백](../goals/goal-08-ci-cd.md) — 완료
 - [Docker 전환: 8081 enhancement container](../goals/goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 배포 승인 대기
 - [Goal 9: 관측성·백업·복원](../goals/goal-09-operations.md) — 완료
+- [Goal 10: 전체 검증과 main 승격](../goals/goal-10-release-readiness.md) — main 보존·승격 준비
 
 ## 빠르게 찾는 법
 
