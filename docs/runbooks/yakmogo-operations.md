@@ -92,7 +92,7 @@ sudo ./remove-backup-timer.sh
 
 자동 통합검증은 `scripts/ci/test-portable-install.sh`가 이 흐름을 수행한다. 실제 Pi 리허설에서도 운영 `yakmogo`, 운영 8080과 현재 enhancement volume을 대상으로 `down -v`를 실행하지 않는다.
 
-## Uptime Kuma 계획
+## Uptime Kuma 설정
 
 Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor는 사용자가 실제 이용하는 운영 endpoint 하나만 둔다.
 
@@ -100,7 +100,7 @@ Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor
 |---|---|---:|---|
 | `Yakmogo` | `http://<PI_LAN_IP>:8080/` | 60초 | HTTP 200 |
 
-현재 운영 8080은 Actuator가 없는 이전 release이므로 루트 화면을 감시한다. 8081 enhancement는 release candidate 검증용이므로 Kuma에 추가하지 않는다. Goal 10에서 새 release가 main과 8080에 승격되면 기존 monitor 하나의 URL만 `/actuator/health`로 바꿔 이력과 알림 설정을 유지한다.
+현재 운영 8080은 Actuator가 없는 이전 release이므로 루트 화면을 감시한다. 8081 enhancement는 release candidate 검증용이므로 Kuma에 추가하지 않았다. Goal 10에서 새 release가 main과 8080에 승격되면 기존 monitor 하나의 URL만 `/actuator/health`로 바꿔 이력과 알림 설정을 유지한다.
 
 설명에는 다음 내용을 넣는다.
 
@@ -113,6 +113,8 @@ Kuma 1.23.17은 monitor의 `description` 필드를 지원한다. Yakmogo monitor
 ```
 
 기존 `Yakmogo` monitor에 설명만 추가해 재사용한다. 8081 enhancement, MariaDB container와 GitHub Actions self-hosted runner에는 별도 Kuma monitor를 만들지 않는다. 운영 `/actuator/health`가 앱과 DB 연결을 함께 판단하므로 최종적으로도 Yakmogo monitor 하나면 충분하다.
+
+2026-07-15 적용 결과는 monitor 하나, 60초, active이며 설명에 감시 대상·정상 조건·장애 영향·확인 명령·이 문서 경로를 기록했다. 변경 전 Kuma DB 백업은 Kuma data directory 안에 권한 `600`으로 보관했다.
 
 ## 장애 확인 순서
 

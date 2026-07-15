@@ -38,4 +38,12 @@ CI는 오래된 가짜 백업 3개를 준비한 뒤 실제 dump를 추가해 정
 
 ## 운영 환경 변경 경계
 
-Timer 설치 스크립트는 저장소와 release package에 포함하지만 승인 전에는 Pi에서 실행하지 않는다. Uptime Kuma monitor 추가·이름 변경·설명 입력과 실제 복원 리허설도 같은 승인 지점 뒤에 수행한다. 설계와 실행을 분리하면 운영 설정을 실수로 먼저 바꾸는 일을 막을 수 있다.
+Timer 설치 스크립트는 저장소와 release package에 포함하되 사용자 승인 뒤에만 Pi에서 실행했다. Uptime Kuma 설명 입력과 실제 복원 리허설도 같은 승인 뒤에 수행했다. 운영 8080·운영 DB를 기준선과 사후 상태에서 대조해 변경되지 않았음을 확인했다.
+
+## Pi 복원 리허설의 두 가지 점검 실수
+
+첫 접속 시도는 로컬에서 SSH 비밀번호 문자를 잘못 조립해 인증 전에 실패했다. Pi 명령은 실행되지 않았다. 값을 로그에 직접 쓰지 않고 기존 승인된 연결 방식으로 다시 구성해 접속했다.
+
+최종 DB 행 수 점검에서는 container 이름을 `yakmogo-db`로 가정해 명령 결과가 비었다. `docker ps`에서 실제 Compose container 이름을 확인한 뒤 재실행했다. 이때 `docker inspect`의 환경변수 전체를 출력하지 않고 변수 이름만 확인해 비밀값 노출을 피했다.
+
+리허설은 현재 enhancement volume이 아니라 별도 project, 포트 18082와 임시 volume을 사용했다. 복원 후 health, Flyway V1·V2, 핵심 table row 수와 FK orphan 0건을 확인하고 container·volume·directory를 모두 제거했다.

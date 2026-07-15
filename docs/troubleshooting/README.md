@@ -32,7 +32,7 @@
 - [Goal 7: 알림 신뢰성 고도화](../goals/goal-07-notification-reliability.md) — 완료
 - [Goal 8: CI/CD와 8081 자동 배포·롤백](../goals/goal-08-ci-cd.md) — 완료
 - [Docker 전환: 8081 enhancement container](../goals/goal-docker-enhancement.md) — cutover·rollback 검증 완료, 자동 배포 승인 대기
-- [Goal 9: 관측성·백업·복원](../goals/goal-09-operations.md) — 운영 설정 활성화 승인 대기
+- [Goal 9: 관측성·백업·복원](../goals/goal-09-operations.md) — 완료
 
 ## 빠르게 찾는 법
 
