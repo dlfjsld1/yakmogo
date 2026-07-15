@@ -4,7 +4,7 @@
 
 ## 새 시스템 설치
 
-필수 프로그램은 64비트 Linux, Docker Engine, Docker Compose 플러그인이다. Java, Node.js, MariaDB, GitHub Actions runner, Tailscale은 설치 대상 시스템에 필요하지 않다. 최초 설치 때 Docker가 MariaDB 이미지를 자동으로 받으므로 인터넷 또는 미리 받아 둔 `mariadb:11.8` 이미지가 필요하다.
+필수 프로그램은 64비트 Linux, Docker Engine, Docker Compose 플러그인이다. Java, Node.js와 MariaDB를 별도로 설치할 필요는 없다. 최초 설치 때 Docker가 MariaDB 이미지를 자동으로 받으므로 인터넷 또는 미리 받아 둔 `mariadb:11.8` 이미지가 필요하다.
 
 ```bash
 ./setup.sh
@@ -12,7 +12,7 @@
 
 첫 실행에서는 감지한 LAN 주소를 기본 접속 URL로 제시하고 관리자 비밀번호만 입력받는다. DB 사용자·root 비밀번호와 인증 secret은 `/dev/urandom`으로 자동 생성해 권한 `600`인 `.env`에 저장한다. 이어서 앱·전용 MariaDB를 설치하고, 관리자 권한을 한 번 받아 매월 1일 03:35 KST 자동 백업을 등록한 뒤 health를 확인한다.
 
-설치 스크립트가 변경하는 호스트 설정은 `yakmogo-backup.service`와 `yakmogo-backup.timer`뿐이다. Java, host MariaDB, runner, Tailscale과 다른 Docker 서비스를 설치하거나 변경하지 않는다.
+설치 스크립트가 변경하는 호스트 설정은 `yakmogo-backup.service`와 `yakmogo-backup.timer`뿐이다. Java, host MariaDB와 다른 Docker 서비스를 설치하거나 변경하지 않는다.
 
 Telegram은 계정별 token과 Chat ID를 자동으로 알 수 없으므로 기본 비활성 상태다. 필요할 때만 `.env`의 Telegram 값을 입력하고 앱 container를 다시 만든다.
 

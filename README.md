@@ -1,10 +1,10 @@
 # 약모고 (Yakmogo)
 
-약모고는 가족의 약 복용 일정과 복약 상태를 관리하고, Telegram으로 복약 알림을 전달하는 개인용 서비스입니다. Spring Boot 백엔드와 React 관리자 웹, Yakmogo 전용 MariaDB로 구성되며 Raspberry Pi를 포함한 64비트 Linux에서 Docker Compose로 운영할 수 있습니다.
+약모고는 가족의 약 복용 일정과 복약 상태를 관리하고, Telegram으로 복약 알림을 전달하는 개인용 서비스입니다. Spring Boot 백엔드와 React 관리자 웹, Yakmogo 전용 MariaDB로 구성되며 64비트 Linux에서 Docker Compose로 운영할 수 있습니다.
 
 ## 빠른 설치
 
-새 서버에는 **Docker Engine과 Docker Compose plugin만** 설치되어 있으면 됩니다. Java, Node.js, MariaDB, GitHub Actions runner와 Tailscale은 약모고 실행에 필요하지 않습니다.
+새 서버에는 **Docker Engine과 Docker Compose plugin만** 설치되어 있으면 됩니다. Java, Node.js와 MariaDB를 별도로 설치할 필요는 없습니다.
 
 배포용 `yakmogo-<version>-portable.tar.gz`와 같은 이름의 `.sha256` 파일을 서버로 옮긴 뒤 실행합니다.
 
@@ -33,9 +33,9 @@ Telegram token과 Chat ID는 자동으로 알 수 없기 때문에 신규 설치
 
 ## 개발 배경과 방식
 
-초기 버전은 개발자가 직접 설계하고 구현했습니다. 실제 가족이 사용하던 중 알림 전달과 복약 상태 처리에서 신뢰성 문제가 확인되었고, 이 문제를 해결하는 동시에 향후 Kotlin Android 앱을 안정적으로 개발할 수 있도록 기존 구조 전반을 고도화했습니다. Android 앱 자체와 Device, Pairing, FCM 기능은 이번 버전에 포함하지 않았으며 별도의 2차 개발 단계로 분리했습니다.
+초기 버전은 개발자가 직접 설계하고 구현했습니다. 실제 가족이 사용하면서 Telegram 푸시만으로는 복약 알림을 명확하게 인지하기 어렵다는 한계를 확인했고, 향후 Kotlin Android 앱으로 알림 경험을 확장할 수 있도록 기존 구조 전반을 고도화했습니다. 이 과정에서 중복 발송 방지, 전달 결과 기록, 재시도와 복약 상태 전이의 일관성을 기술적 신뢰성 과제로 함께 개선했습니다. Android 앱 자체와 Device, Pairing, FCM 기능은 이번 버전에 포함하지 않았으며 별도의 2차 개발 단계로 분리했습니다.
 
-고도화 버전은 AI 코딩 도구를 적극 활용하는 **바이브 코딩(vibe coding)** 방식으로 개발했습니다. AI가 생성한 결과를 그대로 배포한 것이 아니라, 개발자가 목표와 설계 방향을 결정하고 Goal별 브랜치에서 코드 검토, 자동 테스트, 문서화, 실제 MariaDB·Raspberry Pi·ARM64 환경 검증을 거쳐 통합했습니다.
+고도화 버전은 AI 코딩 도구를 적극 활용하는 **바이브 코딩(vibe coding)** 방식으로 개발했습니다. AI가 생성한 결과를 그대로 배포한 것이 아니라, 개발자가 목표와 설계 방향을 결정하고 Goal별 브랜치에서 코드 검토, 자동 테스트, 문서화와 실제 MariaDB·ARM64 Linux 환경 검증을 거쳐 통합했습니다. Raspberry Pi는 지원 대상을 제한하는 전제가 아니라 ARM64 운영 인수시험 환경으로 사용했습니다.
 
 ## 주요 고도화 내용
 
