@@ -105,8 +105,6 @@ TELEGRAM_BOT_USERNAME=봇_사용자명
 docker compose --env-file .env -f compose.yml up -d --force-recreate yakmogo-app
 ```
 
-비밀번호, bot token, Chat ID와 SQL dump는 Git에 commit하지 않습니다.
-
 업데이트, 백업과 복원 방법은 [ARM64 Docker 배포 패키지 안내](deploy/portable/README.md)와 [운영 런북](docs/runbooks/yakmogo-operations.md)을 참고하세요.
 
 ## 고도화 배경과 Docker 전환
