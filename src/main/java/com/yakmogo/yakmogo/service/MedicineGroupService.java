@@ -1,5 +1,6 @@
 package com.yakmogo.yakmogo.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,6 +29,7 @@ public class MedicineGroupService {
 	private final IntakeLogRepository intakeLogRepository;
 	private final AuthorizationService authorizationService;
 	private final MedicineSchedulePolicy medicineSchedulePolicy;
+	private final Clock applicationClock;
 
 	//약 등록
 	public Long register(Long userId, MedicineRequest request) {
@@ -53,7 +55,7 @@ public class MedicineGroupService {
 		medicineGroupRepository.save(group);
 
 		//오늘 바로 먹어야 하는 약이면 즉시 생성
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(applicationClock);
 		if (medicineSchedulePolicy.shouldTakeOn(group, today)) {
 			IntakeLog log = IntakeLog.builder()
 				.user(user)

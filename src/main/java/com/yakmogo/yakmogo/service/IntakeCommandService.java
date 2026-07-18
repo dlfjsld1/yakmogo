@@ -1,5 +1,6 @@
 package com.yakmogo.yakmogo.service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class IntakeCommandService {
 	private final IntakeLogRepository intakeLogRepository;
 	private final GuardianRepository guardianRepository;
 	private final AuthorizationService authorizationService;
+	private final Clock applicationClock;
 
 	public IntakeCompletion complete(Long logId) {
 		IntakeLog log = findLog(logId);
@@ -47,7 +49,7 @@ public class IntakeCommandService {
 				"대기 중인 복용 기록만 완료할 수 있습니다. 현재 상태=" + log.getStatus()
 			);
 		}
-		LocalDateTime completedAt = LocalDateTime.now();
+		LocalDateTime completedAt = LocalDateTime.now(applicationClock);
 		log.markAsTaken(completedAt);
 		return new IntakeCompletion(
 			log.getId(),

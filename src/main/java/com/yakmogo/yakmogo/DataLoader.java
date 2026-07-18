@@ -9,6 +9,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -20,6 +21,7 @@ public class DataLoader implements CommandLineRunner {
 	private final UserRepository userRepository;
 	private final MedicineGroupRepository medicineGroupRepository;
 	private final IntakeLogRepository intakeLogRepository;
+	private final Clock applicationClock;
 
 	@Value("${telegram.bot.chat-id}")
 	private String myChatIdForTest;
@@ -55,7 +57,7 @@ public class DataLoader implements CommandLineRunner {
 				.name("고혈압약")
 				.scheduleType(ScheduleType.DAILY)
 				.intakeTime(LocalTime.of(9, 0)) // 아침 9시 복용
-				.startDate(LocalDate.now())
+				.startDate(LocalDate.now(applicationClock))
 				.build();
 			medicineGroupRepository.save(medicine);
 
@@ -64,7 +66,7 @@ public class DataLoader implements CommandLineRunner {
 			IntakeLog log = IntakeLog.builder()
 				.user(grandpa)
 				.medicineGroup(medicine)
-				.intakeDate(LocalDate.now())
+				.intakeDate(LocalDate.now(applicationClock))
 				.intakeTime(LocalTime.of(9, 0)) // 09:00 예정
 				.status(IntakeStatus.PENDING)   // 아직 안 먹음
 				.build();
