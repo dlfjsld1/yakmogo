@@ -73,7 +73,7 @@ cd "$HOME/yakmogo"
 ./setup.sh
 ```
 
-설치 과정에서 접속 URL과 관리자 비밀번호를 입력하면 애플리케이션과 전용 MariaDB container가 시작됩니다. DB 비밀번호와 인증 secret은 자동으로 생성되고, health 확인과 월간 DB 백업도 함께 설정됩니다. 설치가 끝나면 입력한 URL로 관리자 web에 접속합니다.
+설치 과정에서 접속 URL과 관리자 비밀번호를 입력하면 애플리케이션과 전용 MariaDB container가 시작됩니다. DB 사용자·root 비밀번호와 인증 secret은 `/dev/urandom` 기반 난수로 자동 생성되어 권한 `600`의 `.env`에 저장되며, 소스 코드에는 포함되지 않습니다. health 확인과 월간 DB 백업도 함께 설정됩니다. 설치가 끝나면 입력한 URL로 관리자 web에 접속합니다.
 
 기존 DB를 복원하며 설치할 경우에는 위의 `./setup.sh` 대신 압축된 SQL dump 경로를 함께 전달합니다.
 
