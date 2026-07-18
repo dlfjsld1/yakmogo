@@ -25,7 +25,7 @@
 빌드와 실행에 다음 프로그램이 필요합니다.
 
 - Git
-- Java 21
+- JDK 21 (`java`뿐 아니라 `javac`가 필요합니다)
 - Node.js 22와 npm
 - Docker Engine
 - Docker Compose plugin
