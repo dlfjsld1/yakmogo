@@ -31,14 +31,14 @@ public class SchedulerService {
 	private final TelegramService telegramService;
 	private final Clock applicationClock;
 
-	@Scheduled(cron = "0 13 2 * * *")
+	@Scheduled(cron = "0 13 2 * * *", zone = "Asia/Seoul")
 	public void generateDailyLogs() {
 		LocalDate today = LocalDate.now(applicationClock);
 		int createdCount = dailyIntakeLogService.generateFor(today);
 		log.info("[일일 복용 기록 생성] date={}, created={}", today, createdCount);
 	}
 
-	@Scheduled(cron = "0 * * * * *")
+	@Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
 	@Transactional
 	public void checkMissedDose() {
 		LocalDateTime now = LocalDateTime.now(applicationClock).withSecond(0).withNano(0);
@@ -101,7 +101,7 @@ public class SchedulerService {
 		return intakeLog.getId() + ":" + guardian.getId();
 	}
 
-	@Scheduled(cron = "59 59 23 * * *")
+	@Scheduled(cron = "59 59 23 * * *", zone = "Asia/Seoul")
 	@Transactional
 	public void cleanupPendingLogs() {
 		int updatedCount = intakeLogRepository.updateMissedStatus(LocalDate.now(applicationClock));
