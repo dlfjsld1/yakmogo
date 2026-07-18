@@ -53,6 +53,10 @@ deploy/systemd/*.env
 !deploy/systemd/*.env.example
 deploy/portable/current-release-manifest.txt
 deploy/portable/backups/
+/.local-deployment/
+
+### Local AI Context ###
+/AGENTS.md
 
 ### Config ###
 src/main/resources/application-local.yml
