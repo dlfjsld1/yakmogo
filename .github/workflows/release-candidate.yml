@@ -1,18 +1,16 @@
-name: Enhancement Release Candidate
+name: Main Release Candidate
 
 on:
   push:
     branches:
-      - enhancement
-      - feature/docker-enhancement
-      - feature/operations
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: enhancement-release
+  group: main-release
   cancel-in-progress: false
 
 jobs:
@@ -38,14 +36,14 @@ jobs:
       MARIADB_TEST_USER: yakmogo_test
       MARIADB_TEST_PASSWORD: test-database-password
     steps:
-      - name: Check out backend enhancement
+      - name: Check out backend main
         uses: actions/checkout@v4
 
-      - name: Check out web enhancement
+      - name: Check out web main
         uses: actions/checkout@v4
         with:
           repository: dlfjsld1/yakmogo-web
-          ref: enhancement
+          ref: main
           path: yakmogo-web
 
       - name: Set up Java 21
@@ -80,7 +78,7 @@ jobs:
         run: |
           chmod +x scripts/ci/*.sh scripts/release/*.sh deploy/portable/*.sh gradlew
           scripts/release/build-image.sh \
-            "0.0.7-rc.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" \
+            "0.0.7-main.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" \
             yakmogo-web/dist
 
       - name: Verify one-command install, restore, and rollback
@@ -89,7 +87,7 @@ jobs:
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
         with:
-          name: yakmogo-enhancement-${{ github.sha }}
+          name: yakmogo-main-${{ github.sha }}
           path: |
             build/yakmogo-*-portable.tar.gz
             build/yakmogo-*-portable.tar.gz.sha256
