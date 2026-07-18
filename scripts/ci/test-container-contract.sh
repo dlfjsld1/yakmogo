@@ -52,6 +52,7 @@ echo "Container release safety contract passed"
 grep -Fq 'yakmogo-mariadb:' "$portable_compose"
 grep -Fq 'yakmogo-app:' "$portable_compose"
 grep -Fq 'jdbc:mariadb://yakmogo-mariadb:3306/' "$portable_compose"
+grep -Fq 'TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-yakson_bot}' "$portable_compose"
 grep -Fq 'yakmogo-mariadb-data:' "$portable_compose"
 ! awk '/yakmogo-mariadb:/,/yakmogo-app:/' "$portable_compose" | grep -Eq '^[[:space:]]+ports:'
 grep -Fq 'readonly BACKUP_KEEP=3' "$portable_backup"
@@ -67,4 +68,4 @@ grep -Fq 'runs-on: ubuntu-latest' "$release_workflow"
 ! grep -Fq 'self-hosted' "$release_workflow"
 ! grep -Fq 'Deploy enhancement container' "$release_workflow"
 
-echo "Portable installation contract passed"
+echo "ARM64 Docker installation contract passed"

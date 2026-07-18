@@ -24,7 +24,7 @@ mkdir -p "$output_dir/images"
 for file in compose.yml .env.example README.md lib.sh setup.sh install.sh update.sh backup.sh restore.sh \
   install-backup-timer.sh remove-backup-timer.sh; do
   [[ -f $repository_root/deploy/portable/$file ]] \
-    || { echo "portable package source is missing: $file" >&2; exit 1; }
+    || { echo "ARM64 Docker package source is missing: $file" >&2; exit 1; }
   cp "$repository_root/deploy/portable/$file" "$output_dir/$file"
 done
 cp "$release_dir/$image_tar" "$release_dir/$image_tar.sha256" "$output_dir/images/"
